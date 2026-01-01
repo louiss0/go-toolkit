@@ -23,42 +23,91 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
+	"github.com/louiss0/cobra-cli-template/internal/config"
+	"github.com/louiss0/cobra-cli-template/internal/modindex"
+	"github.com/louiss0/cobra-cli-template/internal/runner"
 	"github.com/spf13/cobra"
 )
 
+type RootOptions struct {
+	Runner       runner.Runner
+	ConfigPath   string
+	IndexFetcher modindex.Fetcher
+}
+
 func NewRootCmd() *cobra.Command {
+	return NewRootCmdWithOptions(RootOptions{})
+}
 
-	cmd := &cobra.Command{
-		Use:   "cli",
-		Short: "A brief description of your application",
-		Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-		// Uncomment the following line if your bare application
-		// has an action associated with it:
-		// Run: func(cmd *cobra.Command, args []string) { },
+func NewRootCmdWithOptions(options RootOptions) *cobra.Command {
+	commandRunner := options.Runner
+	if commandRunner == nil {
+		commandRunner = runner.ExecRunner{}
 	}
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	indexFetcher := options.IndexFetcher
+	if indexFetcher == nil {
+		indexFetcher = modindex.HTTPFetcher{}
+	}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.mini-clis.yaml)")
+	configPath := resolveConfigPath(options.ConfigPath)
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
+	cmd := &cobra.Command{
+		Use:   "go-toolkit",
+		Short: "Go package delegation and scaffolding",
+		Long: `Go Toolkit is a helper for delegating Go module workflows.
+It shortens common tasks like init, remove, and scaffold.`,
+	}
+
+	cmd.PersistentFlags().StringVar(&configPath, "config", configPath, "config file path")
+
+	cmd.AddCommand(NewInitCmd(commandRunner, &configPath))
+	cmd.AddCommand(NewAddCmd(commandRunner, &configPath))
+	cmd.AddCommand(NewRemoveCmd(commandRunner, &configPath))
+	cmd.AddCommand(NewScaffoldCmd(commandRunner, &configPath))
+	cmd.AddCommand(NewTestCmd(commandRunner))
+	cmd.AddCommand(NewConfigCmd(&configPath))
+	cmd.AddCommand(NewSearchCmd(indexFetcher, &configPath))
 
 	return cmd
 }
 
+func resolveConfigPath(configPath string) string {
+	if configPath != "" {
+		return configPath
+	}
+
+	localPath := localConfigPath()
+	if localPath != "" {
+		return localPath
+	}
+
+	defaultPath, err := config.DefaultPath()
+	if err != nil {
+		return ""
+	}
+
+	return defaultPath
+}
+
+func localConfigPath() string {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	path := filepath.Join(workingDir, "gtk-config.toml")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	return ""
+}
+
 var rootCmd = NewRootCmd()
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
