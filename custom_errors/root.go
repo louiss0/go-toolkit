@@ -13,6 +13,9 @@ var InvalidFlag = errors.New("Invalid Flag:")
 // InvalidArgument represents an error indicating an invalid argument.
 var InvalidArgument = errors.New("Invalid Argument:")
 
+// InvalidInput represents an error indicating invalid user input.
+var InvalidInput = errors.New("Invalid Input:")
+
 // FlagName is a string type representing the name of a flag.
 type FlagName string
 
@@ -45,5 +48,12 @@ var CreateInvalidFlagErrorWithMessage = func(flagName FlagName, message string) 
 var CreateInvalidArgumentErrorWithMessage = func(message string) error {
 
 	return fmt.Errorf("%w %s", InvalidFlag, message)
+
+}
+
+// CreateInvalidInputErrorWithMessage creates an error with a custom message for invalid input.
+var CreateInvalidInputErrorWithMessage = func(message string) error {
+
+	return fmt.Errorf("%w %s", InvalidInput, message)
 
 }
