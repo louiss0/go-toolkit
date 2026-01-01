@@ -9,27 +9,19 @@ import (
 var _ = Describe("FilterEntries", func() {
 	assert := assert.New(GinkgoT())
 
-	It("filters by site when the query is short", func() {
-		entries := []modindex.Entry{
-			{Path: "github.com/acme/tool"},
-			{Path: "gitlab.com/acme/tool"},
-		}
+	DescribeTable("filters module entries",
+		func(query, site string, useSiteFilter bool, expectedPath string) {
+			entries := []modindex.Entry{
+				{Path: "github.com/acme/tool"},
+				{Path: "gitlab.com/acme/tool"},
+			}
 
-		filtered := modindex.FilterEntries(entries, "tool", "github.com", true)
+			filtered := modindex.FilterEntries(entries, query, site, useSiteFilter)
 
-		assert.Len(filtered, 1)
-		assert.Equal("github.com/acme/tool", filtered[0].Path)
-	})
-
-	It("does not filter by site when using a full domain query", func() {
-		entries := []modindex.Entry{
-			{Path: "github.com/acme/tool"},
-			{Path: "gitlab.com/acme/tool"},
-		}
-
-		filtered := modindex.FilterEntries(entries, "gitlab.com", "github.com", false)
-
-		assert.Len(filtered, 1)
-		assert.Equal("gitlab.com/acme/tool", filtered[0].Path)
-	})
+			assert.Len(filtered, 1)
+			assert.Equal(expectedPath, filtered[0].Path)
+		},
+		Entry("filters by site when the query is short", "tool", "github.com", true, "github.com/acme/tool"),
+		Entry("does not filter by site when using a full domain query", "gitlab.com", "github.com", false, "gitlab.com/acme/tool"),
+	)
 })

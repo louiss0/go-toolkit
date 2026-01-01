@@ -12,24 +12,27 @@ import (
 var _ = Describe("IsKnownSite", func() {
 	assert := assert.New(GinkgoT())
 
-	It("accepts the common VCS hosts", func() {
-		assert.True(config.IsKnownSite("github.com"))
-		assert.True(config.IsKnownSite("gitlab.com"))
-		assert.True(config.IsKnownSite("bitbucket.org"))
-	})
-
-	It("rejects unknown hosts", func() {
-		assert.False(config.IsKnownSite("example.com"))
-	})
+	DescribeTable("matches known sites",
+		func(site string, expected bool) {
+			assert.Equal(expected, config.IsKnownSite(site))
+		},
+		Entry("accepts github.com", "github.com", true),
+		Entry("accepts gitlab.com", "gitlab.com", true),
+		Entry("accepts bitbucket.org", "bitbucket.org", true),
+		Entry("rejects unknown hosts", "example.com", false),
+	)
 })
 
 var _ = Describe("IsValidSite", func() {
 	assert := assert.New(GinkgoT())
 
-	It("requires a dot in the hostname", func() {
-		assert.True(config.IsValidSite("github.com"))
-		assert.False(config.IsValidSite("githubcom"))
-	})
+	DescribeTable("requires a dot in the hostname",
+		func(site string, expected bool) {
+			assert.Equal(expected, config.IsValidSite(site))
+		},
+		Entry("accepts github.com", "github.com", true),
+		Entry("rejects githubcom", "githubcom", false),
+	)
 })
 
 var _ = Describe("ResolveUser", func() {

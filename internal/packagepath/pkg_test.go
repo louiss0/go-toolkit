@@ -13,71 +13,95 @@ var _ = Describe("Packagepath", func() {
 	assert := assert.New(GinkgoT())
 
 	Describe("NormalizePackageName", func() {
-		It("replaces spaces with underscores", func() {
-			name := packagepath.NormalizePackageName("my package")
+		DescribeTable("normalizes names",
+			func(input, expected string) {
+				name := packagepath.NormalizePackageName(input)
 
-			assert.Equal("my_package", name)
-		})
-
-		It("collapses repeated spaces", func() {
-			name := packagepath.NormalizePackageName("  multiple   spaces  ")
-
-			assert.Equal("multiple_spaces", name)
-		})
+				assert.Equal(expected, name)
+			},
+			Entry("replaces spaces with underscores", "my package", "my_package"),
+			Entry("collapses repeated spaces", "  multiple   spaces  ", "multiple_spaces"),
+		)
 	})
 
 	Describe("ResolveModulePath", func() {
-		It("keeps fully qualified module paths", func() {
-			path, err := packagepath.ResolveModulePath("github.com/acme/tool", "github.com", "lou")
+		DescribeTable("resolves module paths",
+			func(input, site, user, expected string, expectedErr error) {
+				path, err := packagepath.ResolveModulePath(input, site, user)
 
-			assert.NoError(err)
-			assert.Equal("github.com/acme/tool", path)
-		})
+				if expectedErr != nil {
+					assert.Error(err)
+					assert.True(errors.Is(err, expectedErr))
+					return
+				}
 
-		It("accepts numeric module segments when the path is complete", func() {
-			path, err := packagepath.ResolveModulePath("4/r/7", "github.com", "lou")
-
-			assert.NoError(err)
-			assert.Equal("4/r/7", path)
-		})
-
-		It("accepts full module paths with a version suffix", func() {
-			path, err := packagepath.ResolveModulePath("github.com/onsi/ginkgo/v2", "github.com", "lou")
-
-			assert.NoError(err)
-			assert.Equal("github.com/onsi/ginkgo/v2", path)
-		})
-
-		It("adds the site when given user and package", func() {
-			path, err := packagepath.ResolveModulePath("acme/tool", "github.com", "lou")
-
-			assert.NoError(err)
-			assert.Equal("github.com/acme/tool", path)
-		})
-
-		It("uses the registered user when only a package is provided", func() {
-			path, err := packagepath.ResolveModulePath("tool", "github.com", "lou")
-
-			assert.NoError(err)
-			assert.Equal("github.com/lou/tool", path)
-		})
-
-		It("errors when the user is missing for a short package", func() {
-			_, err := packagepath.ResolveModulePath("tool", "github.com", "")
-
-			assert.True(errors.Is(err, packagepath.ErrMissingUser))
-		})
-
-		It("errors when the site is invalid for a short package", func() {
-			_, err := packagepath.ResolveModulePath("tool", "githubcom", "lou")
-
-			assert.True(errors.Is(err, custom_errors.InvalidInput))
-		})
-
-		It("errors on invalid path structures", func() {
-			_, err := packagepath.ResolveModulePath("a/b/c/d", "github.com", "lou")
-
-			assert.True(errors.Is(err, custom_errors.InvalidInput))
-		})
+				assert.NoError(err)
+				assert.Equal(expected, path)
+			},
+			Entry(
+				"keeps fully qualified module paths",
+				"github.com/acme/tool",
+				"github.com",
+				"lou",
+				"github.com/acme/tool",
+				nil,
+			),
+			Entry(
+				"accepts numeric module segments when the path is complete",
+				"4/r/7",
+				"github.com",
+				"lou",
+				"4/r/7",
+				nil,
+			),
+			Entry(
+				"accepts full module paths with a version suffix",
+				"github.com/onsi/ginkgo/v2",
+				"github.com",
+				"lou",
+				"github.com/onsi/ginkgo/v2",
+				nil,
+			),
+			Entry(
+				"adds the site when given user and package",
+				"acme/tool",
+				"github.com",
+				"lou",
+				"github.com/acme/tool",
+				nil,
+			),
+			Entry(
+				"uses the registered user when only a package is provided",
+				"tool",
+				"github.com",
+				"lou",
+				"github.com/lou/tool",
+				nil,
+			),
+			Entry(
+				"errors when the user is missing for a short package",
+				"tool",
+				"github.com",
+				"",
+				"",
+				packagepath.ErrMissingUser,
+			),
+			Entry(
+				"errors when the site is invalid for a short package",
+				"tool",
+				"githubcom",
+				"lou",
+				"",
+				custom_errors.InvalidInput,
+			),
+			Entry(
+				"errors on invalid path structures",
+				"a/b/c/d",
+				"github.com",
+				"lou",
+				"",
+				custom_errors.InvalidInput,
+			),
+		)
 	})
 })
