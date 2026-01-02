@@ -2,12 +2,16 @@ package modindex
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 const DefaultBaseURL = "https://index.golang.org"
@@ -22,6 +26,8 @@ type Request struct {
 	Since      string
 	Limit      int
 	IncludeAll bool
+	MaxPages   int
+	MaxResults int
 }
 
 type Fetcher interface {
@@ -30,7 +36,7 @@ type Fetcher interface {
 
 type HTTPFetcher struct {
 	BaseURL string
-	Client  *http.Client
+	Client  *resty.Client
 }
 
 func (f HTTPFetcher) Fetch(ctx context.Context, request Request) ([]Entry, error) {
@@ -51,31 +57,31 @@ func (f HTTPFetcher) Fetch(ctx context.Context, request Request) ([]Entry, error
 	}
 
 	endpoint := baseURL + "/index"
-	if encoded := query.Encode(); encoded != "" {
-		endpoint += "?" + encoded
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
 
 	client := f.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = resty.New().
+			SetRetryCount(3).
+			SetRetryWaitTime(200 * time.Millisecond).
+			SetRetryMaxWaitTime(2 * time.Second).
+			AddRetryCondition(func(resp *resty.Response, err error) bool {
+				if err != nil {
+					return true
+				}
+				return resp != nil && resp.StatusCode() >= http.StatusInternalServerError
+			})
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.R().SetContext(ctx).SetQueryParamsFromValues(query).Get(endpoint)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("index request failed: %s", resp.Status)
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("index request failed: %s", resp.Status())
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
+	scanner := bufio.NewScanner(bytes.NewReader(resp.Body()))
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 
 	entries := []Entry{}
@@ -122,4 +128,88 @@ func FilterEntries(entries []Entry, query string, site string, useSiteFilter boo
 	}
 
 	return filtered
+}
+
+func DropLeadingDuplicate(entries []Entry, previous Entry) []Entry {
+	if len(entries) == 0 {
+		return entries
+	}
+
+	if entries[0] == previous {
+		return entries[1:]
+	}
+
+	return entries
+}
+
+func FetchAll(ctx context.Context, fetcher Fetcher, request Request) ([]Entry, error) {
+	if fetcher == nil {
+		return nil, fmt.Errorf("fetcher is required")
+	}
+
+	if request.MaxPages < 0 || request.MaxResults < 0 {
+		return nil, fmt.Errorf("max pages and max results must be non-negative")
+	}
+
+	if request.Limit <= 0 {
+		entries, err := fetcher.Fetch(ctx, request)
+		if err != nil {
+			return nil, err
+		}
+
+		if request.MaxResults > 0 && len(entries) > request.MaxResults {
+			return entries[:request.MaxResults], nil
+		}
+
+		return entries, nil
+	}
+
+	pageRequest := request
+	pageSince := request.Since
+
+	var previous *Entry
+	entries := []Entry{}
+	pagesFetched := 0
+
+	for {
+		if request.MaxPages > 0 && pagesFetched >= request.MaxPages {
+			break
+		}
+
+		pageRequest.Since = pageSince
+		pageEntries, err := fetcher.Fetch(ctx, pageRequest)
+		if err != nil {
+			return nil, err
+		}
+		pagesFetched++
+
+		if len(pageEntries) == 0 {
+			break
+		}
+
+		filteredEntries := pageEntries
+		if previous != nil {
+			filteredEntries = DropLeadingDuplicate(pageEntries, *previous)
+		}
+
+		if len(filteredEntries) > 0 {
+			entries = append(entries, filteredEntries...)
+		} else if previous != nil && len(pageEntries) == 1 && pageEntries[0] == *previous {
+			break
+		}
+
+		if request.MaxResults > 0 && len(entries) >= request.MaxResults {
+			return entries[:request.MaxResults], nil
+		}
+
+		lastEntry := pageEntries[len(pageEntries)-1]
+		previous = &lastEntry
+		pageSince = lastEntry.Timestamp
+
+		if len(pageEntries) < pageRequest.Limit {
+			break
+		}
+	}
+
+	return entries, nil
 }
