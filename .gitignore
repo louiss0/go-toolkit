@@ -12,6 +12,7 @@ bin/
 dist/
 
 /.gocache/
+/.cache/
 
 *.prof
 *.trace
