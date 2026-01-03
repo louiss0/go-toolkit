@@ -1,19 +1,21 @@
 package runner
 
 import (
-	"io"
 	"os/exec"
+
+	"github.com/spf13/cobra"
 )
 
 type Runner interface {
-	Run(name string, args []string, stdout, stderr io.Writer) error
+	Run(cmd *cobra.Command, name string, args ...string) error
 }
 
 type ExecRunner struct{}
 
-func (ExecRunner) Run(name string, args []string, stdout, stderr io.Writer) error {
+func (ExecRunner) Run(cmd *cobra.Command, name string, args ...string) error {
 	command := exec.Command(name, args...)
-	command.Stdout = stdout
-	command.Stderr = stderr
+	command.Stdin = cmd.InOrStdin()
+	command.Stdout = cmd.OutOrStdout()
+	command.Stderr = cmd.ErrOrStderr()
 	return command.Run()
 }

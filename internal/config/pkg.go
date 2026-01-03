@@ -2,10 +2,14 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/kaptinlin/gozod"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 )
 
@@ -18,15 +22,18 @@ var knownSites = map[string]struct{}{
 }
 
 type Values struct {
-	User      string           `mapstructure:"user" toml:"user"`
-	Site      string           `mapstructure:"site" toml:"site"`
+	User      string           `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
+	Site      string           `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
 	Providers []ProviderConfig `mapstructure:"providers" toml:"providers"`
 }
 
 type ProviderConfig struct {
-	Name string `mapstructure:"name" toml:"name"`
-	Path string `mapstructure:"path" toml:"path"`
+	Name string `mapstructure:"name" toml:"name" gozod:"required,min=1"`
+	Path string `mapstructure:"path" toml:"path" gozod:"required,min=1"`
 }
+
+var valuesSchema = gozod.FromStruct[Values]()
+var siteSchema = gozod.String().Regex(regexp.MustCompile(`^[^\s.][^\s]*\.[^\s]*[^\s.]$`))
 
 func DefaultPath() (string, error) {
 	configDir, err := os.UserConfigDir()
@@ -58,12 +65,20 @@ func Load(path string) (Values, error) {
 		return Values{}, err
 	}
 
+	if err := validateValues(values); err != nil {
+		return Values{}, err
+	}
+
 	return values, nil
 }
 
 func Save(path string, values Values) error {
 	if path == "" {
 		return errors.New("config path is required")
+	}
+
+	if err := validateValues(values); err != nil {
+		return err
 	}
 
 	dir := filepath.Dir(path)
@@ -80,6 +95,14 @@ func Save(path string, values Values) error {
 	}
 
 	return configFile.WriteConfigAs(path)
+}
+
+func validateValues(values Values) error {
+	if _, err := valuesSchema.Parse(values); err != nil {
+		return fmt.Errorf("invalid config values: %w", err)
+	}
+
+	return nil
 }
 
 func ResolveSite(flagSite string, values Values) string {
@@ -100,7 +123,9 @@ func IsKnownSite(site string) bool {
 }
 
 func KnownSites() []string {
-	return []string{"github.com", "gitlab.com", "bitbucket.org"}
+	return lo.MapToSlice(knownSites, func(key string, value struct{}) string {
+		return key
+	})
 }
 
 func IsValidSite(site string) bool {
@@ -109,9 +134,8 @@ func IsValidSite(site string) bool {
 		return false
 	}
 
-	if strings.Contains(trimmed, " ") {
+	if _, err := siteSchema.Parse(trimmed); err != nil {
 		return false
 	}
-
-	return strings.Contains(trimmed, ".") && !strings.HasPrefix(trimmed, ".") && !strings.HasSuffix(trimmed, ".")
+	return true
 }

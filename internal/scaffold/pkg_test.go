@@ -12,6 +12,33 @@ import (
 var _ = Describe("Scaffold", func() {
 	assert := assert.New(GinkgoT())
 
+	It("fails when package name is missing", func() {
+		err := scaffold.Create(GinkgoT().TempDir(), scaffold.Options{})
+
+		assert.Error(err)
+	})
+
+	It("fails when the folder path is missing", func() {
+		err := scaffold.Create("", scaffold.Options{PackageName: "demo"})
+
+		assert.Error(err)
+	})
+
+	It("fails when the folder path is a file", func() {
+		root := GinkgoT().TempDir()
+		target := filepath.Join(root, "demo")
+
+		err := os.WriteFile(target, []byte("not a dir"), 0o644)
+		assert.NoError(err)
+
+		err = scaffold.Create(target, scaffold.Options{
+			PackageName: "demo",
+			WriteIndex:  true,
+		})
+
+		assert.Error(err)
+	})
+
 	It("creates a folder with an index file by default", func() {
 		root := GinkgoT().TempDir()
 		target := filepath.Join(root, "demo")

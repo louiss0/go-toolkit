@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/cobra-cli-template/internal/cmdutil"
 	"github.com/louiss0/cobra-cli-template/internal/config"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -32,7 +33,8 @@ func newConfigSetUserCmd(configPath *string) *cobra.Command {
 		Short: "Register the default user",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config set-user: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -56,11 +58,13 @@ func newConfigSetSiteCmd(configPath *string) *cobra.Command {
 		Short: "Register the default module site",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateSite(args[0], allowFull); err != nil {
+			cmdutil.LogInfoIfProduction("config set-site: validating site")
+			if err := cmdutil.ValidateSite(args[0], allowFull); err != nil {
 				return err
 			}
 
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config set-site: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -76,18 +80,9 @@ func newConfigSetSiteCmd(configPath *string) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
-	registerSiteCompletion(cmd, "site")
+	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
-}
-
-func loadConfigValues(path string) (config.Values, error) {
-	values, err := config.Load(path)
-	if err != nil {
-		return config.Values{}, err
-	}
-
-	return values, nil
 }
 
 func newConfigInitCmd(configPath *string) *cobra.Command {
@@ -99,7 +94,8 @@ func newConfigInitCmd(configPath *string) *cobra.Command {
 		Use:   "init",
 		Short: "Initialize the config file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config init: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -116,7 +112,8 @@ func newConfigInitCmd(configPath *string) *cobra.Command {
 				values.Site = config.DefaultSite
 			}
 
-			if err := validateSite(values.Site, allowFull); err != nil {
+			cmdutil.LogInfoIfProduction("config init: validating site")
+			if err := cmdutil.ValidateSite(values.Site, allowFull); err != nil {
 				return err
 			}
 
@@ -132,7 +129,7 @@ func newConfigInitCmd(configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&userFlag, "user", "", "set the default user")
 	cmd.Flags().StringVar(&siteFlag, "site", "", "set the default site")
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
-	registerSiteCompletion(cmd, "site")
+	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
 }
@@ -142,7 +139,8 @@ func newConfigShowCmd(configPath *string) *cobra.Command {
 		Use:   "show",
 		Short: "Show the current config values",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config show: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -194,7 +192,8 @@ func newConfigProvidersAddCmd(configPath *string) *cobra.Command {
 				return custom_errors.CreateInvalidInputErrorWithMessage("provider path is required")
 			}
 
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config providers add: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -231,7 +230,8 @@ func newConfigProvidersRemoveCmd(configPath *string) *cobra.Command {
 				return custom_errors.CreateInvalidInputErrorWithMessage("provider name is required")
 			}
 
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config providers remove: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -264,7 +264,8 @@ func newConfigProvidersListCmd(configPath *string) *cobra.Command {
 		Use:   "list",
 		Short: "List provider config mappings",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("config providers list: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}

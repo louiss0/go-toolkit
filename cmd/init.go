@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/cobra-cli-template/internal/cmdutil"
 	"github.com/louiss0/cobra-cli-template/internal/config"
 	"github.com/louiss0/cobra-cli-template/internal/packagepath"
 	"github.com/louiss0/cobra-cli-template/internal/runner"
@@ -20,7 +21,8 @@ func NewInitCmd(commandRunner runner.Runner, configPath *string) *cobra.Command 
 		Short: "Initialize a Go module with a short package name",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("init: loading config")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -35,23 +37,29 @@ func NewInitCmd(commandRunner runner.Runner, configPath *string) *cobra.Command 
 			}
 
 			allowCustomSite := allowFull || (siteFlag == "" && values.Site != "")
-			if err := validateSite(site, allowCustomSite); err != nil {
+			if err := cmdutil.ValidateSite(site, allowCustomSite); err != nil {
 				return err
 			}
 
+			cmdutil.LogInfoIfProduction("init: resolving module path for %s", site)
 			modulePath, err := packagepath.ResolveModulePath(args[0], site, user)
 			if err != nil {
 				return err
 			}
 
-			return commandRunner.Run("go", []string{"mod", "init", modulePath}, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			cmdutil.LogInfoIfProduction("init: running go mod init")
+			if err := commandRunner.Run(cmd, "go", "mod", "init", modulePath); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&userFlag, "user", "", "override the configured user")
 	cmd.Flags().StringVar(&siteFlag, "site", "", "override the configured site")
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
-	registerSiteCompletion(cmd, "site")
+	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
 }

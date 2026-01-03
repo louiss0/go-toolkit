@@ -23,36 +23,41 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
+	"github.com/kaptinlin/gozod"
 	"github.com/louiss0/cobra-cli-template/internal/config"
-	"github.com/louiss0/cobra-cli-template/internal/modindex"
 	"github.com/louiss0/cobra-cli-template/internal/runner"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
 type RootOptions struct {
-	Runner       runner.Runner
-	ConfigPath   string
-	IndexFetcher modindex.Fetcher
+	Runner     runner.Runner
+	ConfigPath string `gozod:"regex=^$|^\\S+$"`
 }
 
+var rootOptionsSchema = gozod.FromStruct[RootOptions]().
+	Refine(func(options RootOptions) bool {
+
+		return lo.EveryBy([]any{options.Runner}, func(value any) bool {
+			return value != nil
+		})
+
+	})
+
 func NewRootCmd() *cobra.Command {
-	return NewRootCmdWithOptions(RootOptions{})
+	return NewRootCmdWithOptions(RootOptions{
+		Runner: runner.ExecRunner{},
+	})
 }
 
 func NewRootCmdWithOptions(options RootOptions) *cobra.Command {
+
+	rootOptionsSchema.MustParse(options)
+
 	commandRunner := options.Runner
-	if commandRunner == nil {
-		commandRunner = runner.ExecRunner{}
-	}
 
-	indexFetcher := options.IndexFetcher
-	if indexFetcher == nil {
-		indexFetcher = modindex.HTTPFetcher{}
-	}
-
-	configPath := resolveConfigPath(options.ConfigPath)
+	configPath := config.ResolveConfigPath(options.ConfigPath)
 
 	cmd := &cobra.Command{
 		Use:   "go-toolkit",
@@ -69,41 +74,9 @@ It shortens common tasks like init, remove, and scaffold.`,
 	cmd.AddCommand(NewScaffoldCmd(commandRunner, &configPath))
 	cmd.AddCommand(NewTestCmd(commandRunner))
 	cmd.AddCommand(NewConfigCmd(&configPath))
-	cmd.AddCommand(NewSearchCmd(indexFetcher, &configPath))
+	cmd.AddCommand(NewSearchCmd())
 
 	return cmd
-}
-
-func resolveConfigPath(configPath string) string {
-	if configPath != "" {
-		return configPath
-	}
-
-	localPath := localConfigPath()
-	if localPath != "" {
-		return localPath
-	}
-
-	defaultPath, err := config.DefaultPath()
-	if err != nil {
-		return ""
-	}
-
-	return defaultPath
-}
-
-func localConfigPath() string {
-	workingDir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	path := filepath.Join(workingDir, "gtk-config.toml")
-	if _, err := os.Stat(path); err == nil {
-		return path
-	}
-
-	return ""
 }
 
 var rootCmd = NewRootCmd()

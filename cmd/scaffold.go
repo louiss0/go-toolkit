@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/cobra-cli-template/internal/cmdutil"
 	"github.com/louiss0/cobra-cli-template/internal/config"
 	"github.com/louiss0/cobra-cli-template/internal/packagepath"
 	"github.com/louiss0/cobra-cli-template/internal/runner"
@@ -32,6 +33,7 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 			writeIndex := folderFlag == ""
 
 			folder = filepath.Clean(folder)
+			cmdutil.LogInfoIfProduction("scaffold: creating package at %s", folder)
 			if err := scaffold.Create(folder, scaffold.Options{
 				PackageName: packageName,
 				WriteIndex:  writeIndex,
@@ -41,10 +43,12 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 			}
 
 			if !initModule {
+				cmdutil.LogInfoIfProduction("scaffold: module init skipped")
 				return nil
 			}
 
-			values, err := loadConfigValues(*configPath)
+			cmdutil.LogInfoIfProduction("scaffold: loading config for module init")
+			values, err := config.Load(*configPath)
 			if err != nil {
 				return err
 			}
@@ -58,16 +62,22 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 				return err
 			}
 			allowCustomSite := allowFull || (siteFlag == "" && values.Site != "")
-			if err := validateSite(site, allowCustomSite); err != nil {
+			if err := cmdutil.ValidateSite(site, allowCustomSite); err != nil {
 				return err
 			}
 
+			cmdutil.LogInfoIfProduction("scaffold: resolving module path for %s", site)
 			modulePath, err := packagepath.ResolveModulePath(packageName, site, user)
 			if err != nil {
 				return err
 			}
 
-			return commandRunner.Run("go", []string{"-C", folder, "mod", "init", modulePath}, cmd.OutOrStdout(), cmd.ErrOrStderr())
+			cmdutil.LogInfoIfProduction("scaffold: running go mod init")
+			if err := commandRunner.Run(cmd, "go", "-C", folder, "mod", "init", modulePath); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 
@@ -77,7 +87,7 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 	cmd.Flags().StringVar(&userFlag, "user", "", "override the configured user")
 	cmd.Flags().StringVar(&siteFlag, "site", "", "override the configured site")
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
-	registerSiteCompletion(cmd, "site")
+	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
 }
