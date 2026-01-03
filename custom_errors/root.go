@@ -47,7 +47,7 @@ var CreateInvalidFlagErrorWithMessage = func(flagName FlagName, message string) 
 // CreateInvalidArgumentErrorWithMessage creates an error with a custom message for an invalid argument.
 var CreateInvalidArgumentErrorWithMessage = func(message string) error {
 
-	return fmt.Errorf("%w %s", InvalidFlag, message)
+	return fmt.Errorf("%w %s", InvalidArgument, message)
 
 }
 
