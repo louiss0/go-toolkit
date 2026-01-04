@@ -2,12 +2,14 @@ package main_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/louiss0/cobra-cli-template/cmd"
 	"github.com/louiss0/cobra-cli-template/internal/config"
+	"github.com/louiss0/cobra-cli-template/internal/prompt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +39,72 @@ func ExecuteCmd(cmd *cobra.Command, args ...string) (string, error) {
 	}
 
 	return buf.String(), err
+}
+
+type promptStepKind string
+
+const (
+	promptStepInput  promptStepKind = "input"
+	promptStepSelect promptStepKind = "select"
+)
+
+type promptStep struct {
+	kind  promptStepKind
+	value string
+	err   error
+}
+
+type promptRunnerMock struct {
+	steps []promptStep
+	index int
+}
+
+func newPromptRunnerMock(steps ...promptStep) *promptRunnerMock {
+	return &promptRunnerMock{steps: steps}
+}
+
+func (m *promptRunnerMock) Input(_ *cobra.Command, input prompt.Input) (string, error) {
+	step, err := m.next(promptStepInput)
+	if err != nil {
+		return "", err
+	}
+	if step.err != nil {
+		return "", step.err
+	}
+	if input.Validate != nil {
+		if err := input.Validate(step.value); err != nil {
+			return "", err
+		}
+	}
+	return step.value, nil
+}
+
+func (m *promptRunnerMock) Select(_ *cobra.Command, selectInput prompt.Select) (string, error) {
+	step, err := m.next(promptStepSelect)
+	if err != nil {
+		return "", err
+	}
+	if step.err != nil {
+		return "", step.err
+	}
+	for _, option := range selectInput.Options {
+		if option.Value == step.value {
+			return step.value, nil
+		}
+	}
+	return "", fmt.Errorf("unexpected selection: %s", step.value)
+}
+
+func (m *promptRunnerMock) next(expected promptStepKind) (promptStep, error) {
+	if m.index >= len(m.steps) {
+		return promptStep{}, fmt.Errorf("prompt mock: no steps remaining")
+	}
+	step := m.steps[m.index]
+	m.index++
+	if step.kind != expected {
+		return promptStep{}, fmt.Errorf("prompt mock: expected %s, got %s", expected, step.kind)
+	}
+	return step, nil
 }
 
 var Test = Describe("test command", func() {
@@ -159,9 +227,17 @@ var Init = Describe("init command", func() {
 		runner := &runnerMock{}
 		tempDir := GinkgoT().TempDir()
 		configPath := filepath.Join(tempDir, "config.toml")
-
-		err := os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\n"), 0o644)
+		workingDir, err := os.Getwd()
 		assert.NoError(err)
+
+		err = os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\n"), 0o644)
+		assert.NoError(err)
+
+		err = os.Chdir(tempDir)
+		assert.NoError(err)
+		DeferCleanup(func() {
+			_ = os.Chdir(workingDir)
+		})
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
 			Runner:     runner,
@@ -169,11 +245,73 @@ var Init = Describe("init command", func() {
 		})
 
 		runner.On("Run", mock.Anything, "go", []string{"mod", "init", "github.com/lou/toolkit"}).Return(nil).Once()
+		runner.On("Run", mock.Anything, "git", []string{"init"}).Return(nil).Once()
 
 		_, err = ExecuteCmd(rootCmd, "init", "toolkit")
 
 		assert.NoError(err)
 		runner.AssertExpectations(GinkgoT())
+
+		_, err = os.Stat(filepath.Join(tempDir, "internal"))
+		assert.NoError(err)
+
+		content, err := os.ReadFile(filepath.Join(tempDir, "main.go"))
+		assert.NoError(err)
+		assert.Contains(string(content), "package main")
+	})
+
+	It("prompts for init details when no args are provided", func() {
+		runner := &runnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+		workingDir, err := os.Getwd()
+		assert.NoError(err)
+
+		err = os.Chdir(tempDir)
+		assert.NoError(err)
+		DeferCleanup(func() {
+			_ = os.Chdir(workingDir)
+		})
+
+		promptRunner := newPromptRunnerMock(
+			promptStep{kind: promptStepInput, value: "toolkit"},
+			promptStep{kind: promptStepInput, value: "lou"},
+			promptStep{kind: promptStepSelect, value: "github.com"},
+			promptStep{kind: promptStepSelect, value: "library"},
+			promptStep{kind: promptStepSelect, value: "yes"},
+			promptStep{kind: promptStepSelect, value: "no"},
+			promptStep{kind: promptStepInput, value: "github.com/samber/lo"},
+		)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: promptRunner,
+			ConfigPath:   configPath,
+		})
+
+		runner.On("Run", mock.Anything, "go", []string{"mod", "init", "github.com/lou/toolkit"}).Return(nil).Once()
+		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/samber/lo"}).Return(nil).Once()
+
+		output, err := ExecuteCmd(rootCmd, "init")
+
+		assert.NoError(err)
+		runner.AssertNotCalled(GinkgoT(), "Run", mock.Anything, "git", mock.Anything)
+
+		values, err := config.Load(configPath)
+		assert.NoError(err)
+		assert.Equal("lou", values.User)
+		assert.Equal("github.com", values.Site)
+		assert.True(values.Scaffold.WriteTests)
+
+		_, err = os.Stat(filepath.Join(tempDir, "main.go"))
+		assert.Error(err)
+		_, err = os.Stat(filepath.Join(tempDir, "internal"))
+		assert.NoError(err)
+
+		var summary map[string]any
+		err = json.Unmarshal([]byte(output), &summary)
+		assert.NoError(err)
+		assert.Equal("github.com/lou/toolkit", summary["module_path"])
 	})
 })
 
@@ -335,6 +473,38 @@ var Config = Describe("config command", func() {
 		assert.Equal("github.com", values.Site)
 	})
 
+	It("prompts for config init when no flags are provided", func() {
+		runner := &runnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		promptRunner := newPromptRunnerMock(
+			promptStep{kind: promptStepInput, value: "lou"},
+			promptStep{kind: promptStepSelect, value: "gitlab.com"},
+		)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: promptRunner,
+			ConfigPath:   configPath,
+		})
+
+		output, err := ExecuteCmd(rootCmd, "config", "init")
+
+		assert.NoError(err)
+
+		values, err := config.Load(configPath)
+		assert.NoError(err)
+		assert.Equal("lou", values.User)
+		assert.Equal("gitlab.com", values.Site)
+
+		var summary map[string]any
+		err = json.Unmarshal([]byte(output), &summary)
+		assert.NoError(err)
+		assert.Equal("gitlab.com", summary["site"])
+		assert.Equal("lou", summary["user"])
+	})
+
 	It("shows config values", func() {
 		runner := &runnerMock{}
 		tempDir := GinkgoT().TempDir()
@@ -351,9 +521,12 @@ var Config = Describe("config command", func() {
 		output, err := ExecuteCmd(rootCmd, "config", "show")
 
 		assert.NoError(err)
-		assert.Contains(output, "path:")
-		assert.Contains(output, "site: gitlab.com")
-		assert.Contains(output, "user: lou")
+		var payload map[string]any
+		err = json.Unmarshal([]byte(output), &payload)
+		assert.NoError(err)
+		assert.Equal(configPath, payload["path"])
+		assert.Equal("gitlab.com", payload["site"])
+		assert.Equal("lou", payload["user"])
 	})
 
 	It("uses a repo-local gtk-config.toml when present", func() {
@@ -380,7 +553,10 @@ var Config = Describe("config command", func() {
 		output, err := ExecuteCmd(rootCmd, "config", "show")
 
 		assert.NoError(err)
-		assert.Contains(output, "path: "+configPath)
+		var payload map[string]any
+		err = json.Unmarshal([]byte(output), &payload)
+		assert.NoError(err)
+		assert.Equal(configPath, payload["path"])
 	})
 
 	It("adds a provider mapping", func() {
@@ -393,7 +569,7 @@ var Config = Describe("config command", func() {
 			ConfigPath: configPath,
 		})
 
-		_, err := ExecuteCmd(rootCmd, "config", "providers", "add", "--name", "gitlab", "--path", "/tmp/gitlab")
+		_, err := ExecuteCmd(rootCmd, "config", "provider", "add", "--name", "gitlab", "--path", "/tmp/gitlab")
 
 		assert.NoError(err)
 
@@ -417,7 +593,7 @@ var Config = Describe("config command", func() {
 			ConfigPath: configPath,
 		})
 
-		_, err = ExecuteCmd(rootCmd, "config", "providers", "remove", "--name", "gitlab")
+		_, err = ExecuteCmd(rootCmd, "config", "provider", "remove", "--name", "gitlab")
 
 		assert.NoError(err)
 
@@ -439,7 +615,7 @@ var Config = Describe("config command", func() {
 			ConfigPath: configPath,
 		})
 
-		output, err := ExecuteCmd(rootCmd, "config", "providers", "list")
+		output, err := ExecuteCmd(rootCmd, "config", "provider", "list")
 
 		assert.NoError(err)
 		assert.Contains(output, "gitlab")

@@ -26,20 +26,23 @@ import (
 
 	"github.com/kaptinlin/gozod"
 	"github.com/louiss0/cobra-cli-template/internal/config"
+	"github.com/louiss0/cobra-cli-template/internal/prompt"
 	"github.com/louiss0/cobra-cli-template/internal/runner"
+	"github.com/louiss0/g-tools/mode"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
 type RootOptions struct {
-	Runner     runner.Runner
-	ConfigPath string `gozod:"regex=^$|^\\S+$"`
+	Runner       runner.Runner
+	PromptRunner prompt.Runner
+	ConfigPath   string `gozod:"regex=^$|^\\S+$"`
 }
 
 var rootOptionsSchema = gozod.FromStruct[RootOptions]().
 	Refine(func(options RootOptions) bool {
 
-		return lo.EveryBy([]any{options.Runner}, func(value any) bool {
+		return lo.EveryBy([]any{options.Runner, options.PromptRunner}, func(value any) bool {
 			return value != nil
 		})
 
@@ -47,15 +50,24 @@ var rootOptionsSchema = gozod.FromStruct[RootOptions]().
 
 func NewRootCmd() *cobra.Command {
 	return NewRootCmdWithOptions(RootOptions{
-		Runner: runner.ExecRunner{},
+		Runner:       runner.ExecRunner{},
+		PromptRunner: prompt.NewRunner(mode.NewModeOperator()),
 	})
 }
 
 func NewRootCmdWithOptions(options RootOptions) *cobra.Command {
 
+	if options.Runner == nil {
+		options.Runner = runner.ExecRunner{}
+	}
+	if options.PromptRunner == nil {
+		options.PromptRunner = prompt.NewRunner(mode.NewModeOperator())
+	}
+
 	rootOptionsSchema.MustParse(options)
 
 	commandRunner := options.Runner
+	promptRunner := options.PromptRunner
 
 	configPath := config.ResolveConfigPath(options.ConfigPath)
 
@@ -68,12 +80,12 @@ It shortens common tasks like init, remove, and scaffold.`,
 
 	cmd.PersistentFlags().StringVar(&configPath, "config", configPath, "config file path")
 
-	cmd.AddCommand(NewInitCmd(commandRunner, &configPath))
+	cmd.AddCommand(NewInitCmd(commandRunner, promptRunner, &configPath))
 	cmd.AddCommand(NewAddCmd(commandRunner, &configPath))
 	cmd.AddCommand(NewRemoveCmd(commandRunner, &configPath))
 	cmd.AddCommand(NewScaffoldCmd(commandRunner, &configPath))
 	cmd.AddCommand(NewTestCmd(commandRunner))
-	cmd.AddCommand(NewConfigCmd(&configPath))
+	cmd.AddCommand(NewConfigCmd(&configPath, promptRunner))
 	cmd.AddCommand(NewSearchCmd())
 
 	return cmd

@@ -24,12 +24,17 @@ var knownSites = map[string]struct{}{
 type Values struct {
 	User      string           `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
 	Site      string           `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
+	Scaffold  ScaffoldConfig   `mapstructure:"scaffold" toml:"scaffold"`
 	Providers []ProviderConfig `mapstructure:"providers" toml:"providers"`
 }
 
 type ProviderConfig struct {
 	Name string `mapstructure:"name" toml:"name" gozod:"required,min=1"`
 	Path string `mapstructure:"path" toml:"path" gozod:"required,min=1"`
+}
+
+type ScaffoldConfig struct {
+	WriteTests bool `mapstructure:"write_tests" toml:"write_tests"`
 }
 
 var valuesSchema = gozod.FromStruct[Values]()
@@ -90,6 +95,7 @@ func Save(path string, values Values) error {
 	configFile.SetConfigType("toml")
 	configFile.Set("user", values.User)
 	configFile.Set("site", values.Site)
+	configFile.Set("scaffold", values.Scaffold)
 	if len(values.Providers) > 0 {
 		configFile.Set("providers", values.Providers)
 	}

@@ -32,20 +32,20 @@ var _ = Describe("Scaffold", func() {
 		assert.NoError(err)
 
 		err = scaffold.Create(target, scaffold.Options{
-			PackageName: "demo",
-			WriteIndex:  true,
+			PackageName:   "demo",
+			WriteRootFile: true,
 		})
 
 		assert.Error(err)
 	})
 
-	It("creates a folder with an index file by default", func() {
+	It("creates a folder with a root file by default", func() {
 		root := GinkgoT().TempDir()
 		target := filepath.Join(root, "demo")
 
 		err := scaffold.Create(target, scaffold.Options{
-			PackageName: "demo",
-			WriteIndex:  true,
+			PackageName:   "demo",
+			WriteRootFile: true,
 		})
 
 		assert.NoError(err)
@@ -53,24 +53,24 @@ var _ = Describe("Scaffold", func() {
 		_, err = os.Stat(target)
 		assert.NoError(err)
 
-		content, err := os.ReadFile(filepath.Join(target, "index.go"))
+		content, err := os.ReadFile(filepath.Join(target, "demo.go"))
 		assert.NoError(err)
 		assert.Contains(string(content), "package demo")
 	})
 
-	It("creates only the folder when index generation is disabled", func() {
+	It("creates only the folder when root file generation is disabled", func() {
 		root := GinkgoT().TempDir()
 		target := filepath.Join(root, "demo")
 
 		err := scaffold.Create(target, scaffold.Options{
-			PackageName: "demo",
-			WriteIndex:  false,
-			WriteReadme: false,
+			PackageName:   "demo",
+			WriteRootFile: false,
+			WriteReadme:   false,
 		})
 
 		assert.NoError(err)
 
-		_, err = os.Stat(filepath.Join(target, "index.go"))
+		_, err = os.Stat(filepath.Join(target, "demo.go"))
 		assert.Error(err)
 	})
 
@@ -79,9 +79,9 @@ var _ = Describe("Scaffold", func() {
 		target := filepath.Join(root, "demo")
 
 		err := scaffold.Create(target, scaffold.Options{
-			PackageName: "demo",
-			WriteIndex:  false,
-			WriteReadme: true,
+			PackageName:   "demo",
+			WriteRootFile: false,
+			WriteReadme:   true,
 		})
 
 		assert.NoError(err)
@@ -89,5 +89,22 @@ var _ = Describe("Scaffold", func() {
 		content, err := os.ReadFile(filepath.Join(target, "README.md"))
 		assert.NoError(err)
 		assert.Contains(string(content), "# demo")
+	})
+
+	It("creates a test file when enabled", func() {
+		root := GinkgoT().TempDir()
+		target := filepath.Join(root, "demo")
+
+		err := scaffold.Create(target, scaffold.Options{
+			PackageName:   "demo",
+			WriteRootFile: true,
+			WriteTests:    true,
+		})
+
+		assert.NoError(err)
+
+		content, err := os.ReadFile(filepath.Join(target, "demo_test.go"))
+		assert.NoError(err)
+		assert.Contains(string(content), "func TestDemo(t *testing.T)")
 	})
 })

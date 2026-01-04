@@ -24,20 +24,28 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 
 	cmd := &cobra.Command{
 		Use:   "scaffold <package name>",
-		Short: "Create a package folder with an optional index file",
+		Short: "Create a package folder with a root file",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			packageName := packagepath.NormalizePackageName(args[0])
+			cmdutil.LogInfoIfProduction("scaffold: loading config")
+			values, err := config.Load(*configPath)
+			if err != nil {
+				return err
+			}
 
-			folder := lo.Ternary(folderFlag == "", packageName, folderFlag)
-			writeIndex := folderFlag == ""
+			target := filepath.Clean(args[0])
+			packageName := packagepath.NormalizePackageName(filepath.Base(target))
+
+			folder := lo.Ternary(folderFlag == "", target, folderFlag)
+			writeRootFile := true
 
 			folder = filepath.Clean(folder)
 			cmdutil.LogInfoIfProduction("scaffold: creating package at %s", folder)
 			if err := scaffold.Create(folder, scaffold.Options{
-				PackageName: packageName,
-				WriteIndex:  writeIndex,
-				WriteReadme: writeReadme,
+				PackageName:   packageName,
+				WriteRootFile: writeRootFile,
+				WriteReadme:   writeReadme,
+				WriteTests:    values.Scaffold.WriteTests,
 			}); err != nil {
 				return err
 			}
@@ -45,12 +53,6 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 			if !initModule {
 				cmdutil.LogInfoIfProduction("scaffold: module init skipped")
 				return nil
-			}
-
-			cmdutil.LogInfoIfProduction("scaffold: loading config for module init")
-			values, err := config.Load(*configPath)
-			if err != nil {
-				return err
 			}
 
 			site := config.ResolveSite(siteFlag, values)
@@ -81,7 +83,7 @@ func NewScaffoldCmd(commandRunner runner.Runner, configPath *string) *cobra.Comm
 		},
 	}
 
-	cmd.Flags().StringVar(&folderFlag, "folder", "", "use a custom folder and skip the index file")
+	cmd.Flags().StringVar(&folderFlag, "folder", "", "use a custom folder path")
 	cmd.Flags().BoolVar(&writeReadme, "readme", false, "add a README.md to the package")
 	cmd.Flags().BoolVar(&initModule, "module", false, "initialize a go.mod for the package")
 	cmd.Flags().StringVar(&userFlag, "user", "", "override the configured user")
