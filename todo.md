@@ -10,5 +10,5 @@ None known.
 
 ## What to do next
 
-- Consider documenting new search flags in `README.adoc`.
-- Decide whether to add tests for `--max-pages`/`--max-results` behavior in the search command.
+- Document the new init/config prompt flows and JSON summaries in `README.adoc`.
+- If needed, add integration coverage for prompt-driven `init` in production mode via `-ldflags "-X .../mode.buildMode=production"`.
