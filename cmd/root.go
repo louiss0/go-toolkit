@@ -25,10 +25,10 @@ import (
 	"os"
 
 	"github.com/kaptinlin/gozod"
-	"github.com/louiss0/cobra-cli-template/internal/config"
-	"github.com/louiss0/cobra-cli-template/internal/prompt"
-	"github.com/louiss0/cobra-cli-template/internal/runner"
 	"github.com/louiss0/g-tools/mode"
+	"github.com/louiss0/go-toolkit/internal/modindex/config"
+	"github.com/louiss0/go-toolkit/internal/prompt"
+	"github.com/louiss0/go-toolkit/internal/runner"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )

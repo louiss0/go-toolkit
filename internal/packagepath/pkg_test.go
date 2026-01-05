@@ -3,8 +3,8 @@ package packagepath_test
 import (
 	"errors"
 
-	"github.com/louiss0/cobra-cli-template/custom_errors"
-	"github.com/louiss0/cobra-cli-template/internal/packagepath"
+	"github.com/louiss0/go-toolkit/custom_errors"
+	"github.com/louiss0/go-toolkit/internal/packagepath"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 )

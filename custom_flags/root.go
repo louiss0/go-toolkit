@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/go-toolkit/custom_errors"
 	"github.com/samber/lo"
 )
 

@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/louiss0/cobra-cli-template/cmd"
+import "github.com/louiss0/go-toolkit/cmd"
 
 func main() {
 	cmd.Execute()

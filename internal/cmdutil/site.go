@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/kaptinlin/gozod"
-	"github.com/louiss0/cobra-cli-template/custom_errors"
-	"github.com/louiss0/cobra-cli-template/internal/config"
+	"github.com/louiss0/go-toolkit/custom_errors"
+	"github.com/louiss0/go-toolkit/internal/modindex/config"
 	"github.com/spf13/cobra"
 )
 

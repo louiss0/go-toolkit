@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/louiss0/cobra-cli-template/internal/config"
+	"github.com/louiss0/go-toolkit/internal/modindex/config"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 )

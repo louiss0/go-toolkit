@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/louiss0/cobra-cli-template/custom_errors"
-	"github.com/louiss0/cobra-cli-template/internal/cmdutil"
-	"github.com/louiss0/cobra-cli-template/internal/config"
-	"github.com/louiss0/cobra-cli-template/internal/packagepath"
-	"github.com/louiss0/cobra-cli-template/internal/runner"
+	"github.com/louiss0/go-toolkit/custom_errors"
+	"github.com/louiss0/go-toolkit/internal/cmdutil"
+	"github.com/louiss0/go-toolkit/internal/modindex/config"
+	"github.com/louiss0/go-toolkit/internal/packagepath"
+	"github.com/louiss0/go-toolkit/internal/runner"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )

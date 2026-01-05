@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/louiss0/cobra-cli-template/internal/prompt"
+	"github.com/louiss0/go-toolkit/internal/prompt"
 	"github.com/spf13/cobra"
 )
 

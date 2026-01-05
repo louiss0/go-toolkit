@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/go-toolkit/custom_errors"
 	"github.com/samber/lo"
 )
 

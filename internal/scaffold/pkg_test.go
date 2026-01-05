@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/louiss0/cobra-cli-template/internal/scaffold"
+	"github.com/louiss0/go-toolkit/internal/scaffold"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 )

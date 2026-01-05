@@ -3,8 +3,8 @@ package cmd
 import (
 	"strings"
 
-	"github.com/louiss0/cobra-cli-template/internal/cmdutil"
-	"github.com/louiss0/cobra-cli-template/internal/runner"
+	"github.com/louiss0/go-toolkit/internal/cmdutil"
+	"github.com/louiss0/go-toolkit/internal/runner"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )

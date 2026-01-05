@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/louiss0/cobra-cli-template/custom_errors"
+	"github.com/louiss0/go-toolkit/custom_errors"
 )
 
 var ErrMissingUser = errors.New("missing registered user")
