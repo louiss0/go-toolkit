@@ -23,8 +23,9 @@ var Add = Describe("add command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		runner.On(
@@ -45,7 +46,8 @@ var Add = Describe("add command", func() {
 		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/onsi/ginkgo/v2"}).Return(nil).Once()
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "add", "github.com/onsi/ginkgo/v2")
@@ -59,7 +61,8 @@ var Add = Describe("add command", func() {
 		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/onsi/ginkgo@v2.0.0"}).Return(nil).Once()
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "add", "github.com/onsi/ginkgo@v2.0.0")
@@ -88,8 +91,9 @@ var Add = Describe("add command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		output, err := testhelpers.ExecuteCmd(rootCmd, "add", "samber/lo", "--dry-run")

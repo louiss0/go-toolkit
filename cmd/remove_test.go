@@ -19,7 +19,8 @@ var Remove = Describe("remove command", func() {
 		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/acme/tool@none"}).Return(nil).Once()
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "remove", "github.com/acme/tool")
@@ -37,8 +38,9 @@ var Remove = Describe("remove command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		runner.On(
@@ -59,7 +61,8 @@ var Remove = Describe("remove command", func() {
 		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/onsi/ginkgo/v2@none"}).Return(nil).Once()
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "remove", "github.com/onsi/ginkgo/v2")
@@ -83,7 +86,8 @@ var Remove = Describe("remove command", func() {
 		runner := &testhelpers.RunnerMock{}
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		output, err := testhelpers.ExecuteCmd(rootCmd, "remove", "github.com/onsi/ginkgo/v2", "--dry-run")

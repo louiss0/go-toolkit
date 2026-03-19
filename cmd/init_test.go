@@ -33,8 +33,9 @@ var Init = Describe("init command", func() {
 		})
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		runner.On("Run", mock.Anything, "go", []string{"mod", "init", "github.com/lou/toolkit"}).Return(nil).Once()

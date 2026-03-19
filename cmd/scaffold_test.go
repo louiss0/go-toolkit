@@ -20,8 +20,9 @@ var Scaffold = Describe("scaffold command", func() {
 		target := filepath.Join(tempDir, "demo")
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: filepath.Join(tempDir, "config.toml"),
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   filepath.Join(tempDir, "config.toml"),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "scaffold", "demo", "--folder", target, "--readme")
@@ -44,8 +45,9 @@ var Scaffold = Describe("scaffold command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		runner.On("Run", mock.Anything, "go", []string{"-C", target, "mod", "init", "github.com/lou/demo"}).Return(nil).Once()

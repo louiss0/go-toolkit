@@ -21,8 +21,9 @@ var Config = Describe("config command", func() {
 		configPath := filepath.Join(tempDir, "config.toml")
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "config", "init", "--user", "lou")
@@ -76,8 +77,9 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		output, err := testhelpers.ExecuteCmd(rootCmd, "config", "show")
@@ -89,6 +91,26 @@ var Config = Describe("config command", func() {
 		assert.Equal(configPath, payload["path"])
 		assert.Equal("gitlab.com", payload["site"])
 		assert.Equal("lou", payload["user"])
+	})
+
+	It("removes the config file", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+		err := os.WriteFile(configPath, []byte("user = \"lou\"\n"), 0o644)
+		assert.NoError(err)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "config", "remove")
+		assert.NoError(err)
+
+		_, err = os.Stat(configPath)
+		assert.ErrorIs(err, os.ErrNotExist)
 	})
 
 	It("uses a repo-local gtk-config.toml when present", func() {
@@ -109,7 +131,8 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		output, err := testhelpers.ExecuteCmd(rootCmd, "config", "show")
@@ -127,8 +150,9 @@ var Config = Describe("config command", func() {
 		configPath := filepath.Join(tempDir, "config.toml")
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "config", "provider", "add", "--name", "gitlab", "--path", "/tmp/gitlab")
@@ -151,8 +175,9 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		_, err = testhelpers.ExecuteCmd(rootCmd, "config", "provider", "remove", "--name", "gitlab")
@@ -173,8 +198,9 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner:     runner,
-			ConfigPath: configPath,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
 		})
 
 		output, err := testhelpers.ExecuteCmd(rootCmd, "config", "provider", "list")

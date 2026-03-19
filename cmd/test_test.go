@@ -16,7 +16,8 @@ var Test = Describe("test command", func() {
 		runner.On("Run", mock.Anything, "go", []string{"test", "./..."}).Return(nil).Once()
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
-			Runner: runner,
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
 		})
 
 		_, err := testhelpers.ExecuteCmd(rootCmd, "test")

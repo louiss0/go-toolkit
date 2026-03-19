@@ -41,6 +41,10 @@ var valuesSchema = gozod.FromStruct[Values]()
 var siteSchema = gozod.String().Regex(regexp.MustCompile(`^[^\s.][^\s]*\.[^\s]*[^\s.]$`))
 
 func DefaultPath() (string, error) {
+	if xdgConfigHome := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME")); xdgConfigHome != "" {
+		return filepath.Join(xdgConfigHome, "go-toolkit", "gtk-config.toml"), nil
+	}
+
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
