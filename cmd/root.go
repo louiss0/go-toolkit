@@ -42,9 +42,11 @@ type RootOptions struct {
 var rootOptionsSchema = gozod.FromStruct[RootOptions]().
 	Refine(func(options RootOptions) bool {
 
-		return lo.EveryBy([]any{options.Runner, options.PromptRunner}, func(value any) bool {
-			return value != nil
-		})
+		return lo.EveryBy(
+			[]any{options.Runner, options.PromptRunner},
+			func(value any) bool {
+				return value != nil
+			})
 
 	})
 
@@ -56,14 +58,6 @@ func NewRootCmd() *cobra.Command {
 }
 
 func NewRootCmdWithOptions(options RootOptions) *cobra.Command {
-
-	if options.Runner == nil {
-		options.Runner = runner.ExecRunner{}
-	}
-	if options.PromptRunner == nil {
-		options.PromptRunner = prompt.NewRunner(mode.NewModeOperator())
-	}
-
 	rootOptionsSchema.MustParse(options)
 
 	commandRunner := options.Runner
