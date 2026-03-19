@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Config init prompt", func() {
+var ConfigPrompt = Describe("Config init prompt", func() {
 	assert := assert.New(GinkgoT())
 
 	It("returns aborted when username prompt is canceled", func() {

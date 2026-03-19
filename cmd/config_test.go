@@ -10,7 +10,6 @@ import (
 	"github.com/louiss0/go-toolkit/internal/testhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 var Config = Describe("config command", func() {
