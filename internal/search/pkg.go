@@ -37,6 +37,6 @@ func FetchModuleVersions(ctx context.Context, modulePath string) ([]string, erro
 	}
 
 	return lo.Map(strings.Split(res.String(), "\n"), func(version string, _ int) string {
-		return fmt.Sprintf("%s/%s/%s", proxyBaseURL, modulePath, version)
+		return fmt.Sprintf("%s@%s", modulePath, version)
 	}), nil
 }
