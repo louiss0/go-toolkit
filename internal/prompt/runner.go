@@ -71,8 +71,12 @@ func (r HuhRunner) Select(cmd *cobra.Command, selectInput Select) (string, error
 
 	value := ""
 	field := huh.NewSelect[string]().Title(selectInput.Title).Value(&value)
+	options := make([]huh.Option[string], 0, len(selectInput.Options))
 	for _, option := range selectInput.Options {
-		field.Options(huh.NewOption(option.Label, option.Value))
+		options = append(options, huh.NewOption(option.Label, option.Value))
+	}
+	if len(options) > 0 {
+		field.Options(options...)
 	}
 
 	if err := runField(cmd, field); err != nil {

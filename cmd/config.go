@@ -230,8 +230,19 @@ func promptConfigInitInputs(cmd *cobra.Command, runner prompt.Runner) (configIni
 func buildProviderOptions() []prompt.Option {
 	knownSites := config.KnownSites()
 	options := make([]prompt.Option, 0, len(knownSites)+3)
+	knownSiteLabels := map[string]string{
+		"gitlab.com":    "GitLab",
+		"bitbucket.org": "BitBucket",
+		"github.com":    "GitHub",
+		"codeberg.org":  "Codeberg",
+		"gitea.com":     "Gitea",
+	}
 	for _, site := range knownSites {
-		options = append(options, prompt.Option{Label: site, Value: site})
+		label := site
+		if knownLabel, ok := knownSiteLabels[site]; ok {
+			label = knownLabel
+		}
+		options = append(options, prompt.Option{Label: label, Value: site})
 	}
 	options = append(options,
 		prompt.Option{Label: "Custom", Value: providerCustom},

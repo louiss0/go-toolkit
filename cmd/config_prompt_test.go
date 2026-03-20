@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/charmbracelet/huh"
+	"github.com/louiss0/go-toolkit/internal/prompt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -9,6 +10,14 @@ import (
 
 var ConfigPrompt = Describe("Config init prompt", func() {
 	assert := assert.New(GinkgoT())
+
+	It("lists common providers in the prompt options", func() {
+		options := buildProviderOptions()
+
+		assert.Contains(options, prompt.Option{Label: "GitLab", Value: "gitlab.com"})
+		assert.Contains(options, prompt.Option{Label: "BitBucket", Value: "bitbucket.org"})
+		assert.Contains(options, prompt.Option{Label: "GitHub", Value: "github.com"})
+	})
 
 	It("returns aborted when username prompt is canceled", func() {
 		mock := newPromptMock(promptStep{

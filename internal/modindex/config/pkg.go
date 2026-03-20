@@ -16,9 +16,19 @@ import (
 const DefaultSite = "github.com"
 
 var knownSites = map[string]struct{}{
-	"github.com":    {},
-	"gitlab.com":    {},
 	"bitbucket.org": {},
+	"codeberg.org":  {},
+	"github.com":    {},
+	"gitea.com":     {},
+	"gitlab.com":    {},
+}
+
+var knownSiteOrder = []string{
+	"gitlab.com",
+	"bitbucket.org",
+	"github.com",
+	"codeberg.org",
+	"gitea.com",
 }
 
 type Values struct {
@@ -133,8 +143,9 @@ func IsKnownSite(site string) bool {
 }
 
 func KnownSites() []string {
-	return lo.MapToSlice(knownSites, func(key string, value struct{}) string {
-		return key
+	return lo.Filter(knownSiteOrder, func(site string, _ int) bool {
+		_, ok := knownSites[site]
+		return ok
 	})
 }
 
