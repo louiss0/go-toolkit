@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+project_name: go-toolkit
+
+builds:
+  - id: go-toolkit
+    main: ./main.go
+    binary: go-toolkit
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X {{ .ModulePath }}/build_info.rawCLI_VERSION={{ .Version }}
+      - -X {{ .ModulePath }}/build_info.rawBUILD_DATE={{ .Date }}
+      - -X github.com/louiss0/g-tools/mode.buildMode=production
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+release:
+  github:
+    owner: louiss0
+    name: go-toolkit
+
+winget:
+  - name: go-toolkit
+    publisher: the-code-fixer-23
+    short_description: "CLI for Go module workflows and scaffolding."
+    homepage: "https://github.com/louiss0/go-toolkit"
+    license: MIT
+    publisher_url: "https://github.com/louiss0"
+    publisher_support_url: "https://github.com/louiss0/go-toolkit/issues/new"
+    package_identifier: the-code-fixer-23.go-toolkit
+    path: manifests/t/the-code-fixer-23/go-toolkit/{{ .Version }}
+    commit_msg_template: "{{ .PackageIdentifier }}: {{ .Tag }}"
+    release_notes: "{{.Changelog}}"
+    repository:
+      owner: louiss0
+      name: winget-pkgs
+      branch: "go-toolkit-{{ .Version }}"
+      pull_request:
+        enabled: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+
+homebrew_casks:
+  - name: go-toolkit
+    binaries:
+      - go-toolkit
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/louiss0/go-toolkit"
+    description: "CLI for Go module workflows and scaffolding."
+    repository:
+      owner: louiss0
+      name: homebrew-the-code-fixer-23
+      branch: main
+
+nix:
+  - name: go-toolkit
+    commit_msg_template: "{{ .ProjectName }}: {{ .Tag }}"
+    path: "pkgs/{{ .ProjectName }}/default.nix"
+    homepage: "https://github.com/louiss0/go-toolkit"
+    description: "CLI for Go module workflows and scaffolding."
+    license: mit
+    repository:
+      owner: louiss0
+      name: the-code-fixer-23-nur
+      branch: main
