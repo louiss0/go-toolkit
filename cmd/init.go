@@ -89,6 +89,18 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				return err
 			}
 
+			installPackages, err := resolveInstallPackages(values, packageFlags, presetFlags, promptValues.Packages)
+			if err != nil {
+				return err
+			}
+			installPackages, err = assurePackageProviders(cmd, promptRunner, values, site, installPackages)
+			if err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					return nil
+				}
+				return err
+			}
+
 			cmdutil.LogInfoIfProduction("init: resolving module path for %s", site)
 			modulePath, err := packagepath.ResolveModulePath(moduleInput, site, user)
 			if err != nil {
@@ -100,10 +112,6 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				return err
 			}
 
-			installPackages, err := resolveInstallPackages(values, packageFlags, presetFlags, promptValues.Packages)
-			if err != nil {
-				return err
-			}
 			if len(installPackages) > 0 {
 				cmdutil.LogInfoIfProduction("init: installing packages")
 				args := append([]string{"get"}, installPackages...)

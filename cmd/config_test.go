@@ -34,6 +34,7 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 		assert.Equal("lou", values.User)
 		assert.Equal("github.com", values.Site)
+		assert.False(values.AssureProviders)
 	})
 
 	It("prompts for config init when no flags are provided", func() {
@@ -244,5 +245,24 @@ var Config = Describe("config command", func() {
 		assert.NoError(err)
 		assert.Contains(output, "cli")
 		assert.Contains(output, "github.com/spf13/cobra")
+	})
+
+	It("updates provider assurance", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err := testhelpers.ExecuteCmd(rootCmd, "config", "set-assure-providers", "true")
+		assert.NoError(err)
+
+		values, err := config.Load(configPath)
+		assert.NoError(err)
+		assert.True(values.AssureProviders)
 	})
 })

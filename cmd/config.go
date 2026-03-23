@@ -26,6 +26,7 @@ func NewConfigCmd(configPath *string, promptRunner prompt.Runner) *cobra.Command
 	cmd.AddCommand(newConfigShowCmd(configPath))
 	cmd.AddCommand(newConfigSetUserCmd(configPath))
 	cmd.AddCommand(newConfigSetSiteCmd(configPath))
+	cmd.AddCommand(newConfigSetAssureProvidersCmd(configPath))
 	cmd.AddCommand(newConfigSetScaffoldTestsCmd(configPath))
 	cmd.AddCommand(newConfigProviderCmd(configPath))
 	cmd.AddCommand(newConfigPackagePresetCmd(configPath))
@@ -90,6 +91,34 @@ func newConfigSetSiteCmd(configPath *string) *cobra.Command {
 	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
+}
+
+func newConfigSetAssureProvidersCmd(configPath *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "set-assure-providers <enabled>",
+		Short: "Enable or disable provider assurance for short package paths",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			enabled, err := strconv.ParseBool(args[0])
+			if err != nil {
+				return custom_errors.CreateInvalidInputErrorWithMessage("enabled must be true or false")
+			}
+
+			cmdutil.LogInfoIfProduction("config set-assure-providers: loading config")
+			values, err := config.Load(*configPath)
+			if err != nil {
+				return err
+			}
+
+			values.AssureProviders = enabled
+			if err := config.Save(*configPath, values); err != nil {
+				return err
+			}
+
+			fmt.Fprintln(cmd.OutOrStdout(), "provider assurance updated")
+			return nil
+		},
+	}
 }
 
 func newConfigInitCmd(configPath *string, promptRunner prompt.Runner) *cobra.Command {
@@ -162,12 +191,13 @@ type configInitPrompt struct {
 }
 
 type configSummary struct {
-	Path           string                  `json:"path"`
-	Site           string                  `json:"site"`
-	User           string                  `json:"user"`
-	Scaffold       config.ScaffoldConfig   `json:"scaffold"`
-	Providers      []config.ProviderConfig `json:"providers"`
-	PackagePresets map[string][]string     `json:"package_presets"`
+	Path            string                  `json:"path"`
+	Site            string                  `json:"site"`
+	User            string                  `json:"user"`
+	AssureProviders bool                    `json:"assure_providers"`
+	Scaffold        config.ScaffoldConfig   `json:"scaffold"`
+	Providers       []config.ProviderConfig `json:"providers"`
+	PackagePresets  map[string][]string     `json:"package_presets"`
 }
 
 func promptConfigInitInputs(cmd *cobra.Command, runner prompt.Runner) (configInitPrompt, error) {
@@ -264,12 +294,13 @@ func buildConfigSummary(configPath string, values config.Values) (configSummary,
 	}
 
 	return configSummary{
-		Path:           configPath,
-		Site:           site,
-		User:           user,
-		Scaffold:       values.Scaffold,
-		Providers:      providers,
-		PackagePresets: packagePresets,
+		Path:            configPath,
+		Site:            site,
+		User:            user,
+		AssureProviders: values.AssureProviders,
+		Scaffold:        values.Scaffold,
+		Providers:       providers,
+		PackagePresets:  packagePresets,
 	}, nil
 }
 

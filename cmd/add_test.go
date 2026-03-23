@@ -160,4 +160,57 @@ var Add = Describe("add command", func() {
 		assert.NoError(err)
 		runner.AssertExpectations(GinkgoT())
 	})
+
+	It("assures default providers for short package paths when enabled", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := os.WriteFile(configPath, []byte("user = \"lou\"\nassure_providers = true\n"), 0o644)
+		assert.NoError(err)
+
+		promptRunner := testhelpers.NewPromptRunnerMock(
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "use-default"},
+		)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: promptRunner,
+			ConfigPath:   configPath,
+		})
+
+		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/samber/lo"}).Return(nil).Once()
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "add", "samber/lo")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+	})
+
+	It("lets users edit providers for short package paths", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := os.WriteFile(configPath, []byte("user = \"lou\"\nassure_providers = true\n"), 0o644)
+		assert.NoError(err)
+
+		promptRunner := testhelpers.NewPromptRunnerMock(
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "edit"},
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "gitlab.com"},
+		)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: promptRunner,
+			ConfigPath:   configPath,
+		})
+
+		runner.On("Run", mock.Anything, "go", []string{"get", "gitlab.com/samber/lo"}).Return(nil).Once()
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "add", "samber/lo")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+	})
 })

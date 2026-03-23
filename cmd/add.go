@@ -78,6 +78,14 @@ func NewAddCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configPa
 				return err
 			}
 
+			targetPackages, err = assurePackageProviders(cmd, promptRunner, values, site, targetPackages)
+			if err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					return nil
+				}
+				return err
+			}
+
 			cmdutil.LogInfoIfProduction("add: resolving module paths for %s", site)
 
 			modulePaths := make([]string, 0, len(targetPackages))

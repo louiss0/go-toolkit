@@ -82,8 +82,9 @@ var _ = Describe("ConfigLoadSave", func() {
 	It("round-trips config values", func() {
 		path := filepath.Join(GinkgoT().TempDir(), "config.toml")
 		values := config.Values{
-			User: "lou",
-			Site: "github.com",
+			User:            "lou",
+			Site:            "github.com",
+			AssureProviders: true,
 			Providers: []config.ProviderConfig{
 				{Name: "gitlab", Path: "/tmp/gitlab"},
 			},

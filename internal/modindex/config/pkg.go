@@ -25,11 +25,12 @@ var knownSiteLabels = map[string]string{
 }
 
 type Values struct {
-	User           string              `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
-	Site           string              `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
-	Scaffold       ScaffoldConfig      `mapstructure:"scaffold" toml:"scaffold"`
-	Providers      []ProviderConfig    `mapstructure:"providers" toml:"providers"`
-	PackagePresets map[string][]string `mapstructure:"package_presets" toml:"package_presets"`
+	User            string              `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
+	Site            string              `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
+	AssureProviders bool                `mapstructure:"assure_providers" toml:"assure_providers"`
+	Scaffold        ScaffoldConfig      `mapstructure:"scaffold" toml:"scaffold"`
+	Providers       []ProviderConfig    `mapstructure:"providers" toml:"providers"`
+	PackagePresets  map[string][]string `mapstructure:"package_presets" toml:"package_presets"`
 }
 
 type ProviderConfig struct {
@@ -103,6 +104,7 @@ func Save(path string, values Values) error {
 	configFile.SetConfigType("toml")
 	configFile.Set("user", values.User)
 	configFile.Set("site", values.Site)
+	configFile.Set("assure_providers", values.AssureProviders)
 	configFile.Set("scaffold", values.Scaffold)
 	if len(values.Providers) > 0 {
 		configFile.Set("providers", values.Providers)
