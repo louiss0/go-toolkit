@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/fang"
+	"github.com/louiss0/go-toolkit/build_info"
 	"github.com/louiss0/go-toolkit/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
@@ -61,4 +62,32 @@ func TestNewRootCmdWithOptionsRegistersHiddenCarapaceCommand(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(carapaceCmd)
 	assert.True(carapaceCmd.Hidden)
+}
+
+func TestExecuteRootCommandWithFangVersion(t *testing.T) {
+	assert := assert.New(t)
+
+	rootCmd := NewRootCmdWithOptions(RootOptions{
+		Runner:       &testhelpers.RunnerMock{},
+		PromptRunner: testhelpers.NewPromptRunnerMock(),
+	})
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	rootCmd.SetOut(stdout)
+	rootCmd.SetErr(stderr)
+	rootCmd.SetArgs([]string{"--version"})
+
+	err := fang.Execute(
+		context.Background(),
+		rootCmd,
+		fang.WithVersion(build_info.Version()),
+		fang.WithoutCompletions(),
+	)
+
+	output := stdout.String() + stderr.String()
+
+	assert.NoError(err)
+	assert.Contains(output, "dev")
 }

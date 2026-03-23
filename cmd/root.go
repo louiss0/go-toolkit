@@ -28,6 +28,7 @@ import (
 	"github.com/charmbracelet/fang"
 	"github.com/kaptinlin/gozod"
 	"github.com/louiss0/g-tools/mode"
+	"github.com/louiss0/go-toolkit/build_info"
 	"github.com/louiss0/go-toolkit/internal/modindex/config"
 	"github.com/louiss0/go-toolkit/internal/prompt"
 	"github.com/louiss0/go-toolkit/internal/runner"
@@ -97,7 +98,12 @@ It shortens common tasks like init, remove, and scaffold.`,
 var rootCmd = NewRootCmd()
 
 func Execute() error {
-	return fang.Execute(context.Background(), rootCmd, fang.WithoutCompletions())
+	return fang.Execute(
+		context.Background(),
+		rootCmd,
+		fang.WithVersion(build_info.Version()),
+		fang.WithoutCompletions(),
+	)
 }
 
 func configureCompletions(root *cobra.Command, scaffoldCmd *cobra.Command, configCmd *cobra.Command) {
