@@ -87,6 +87,9 @@ var _ = Describe("ConfigLoadSave", func() {
 			Providers: []config.ProviderConfig{
 				{Name: "gitlab", Path: "/tmp/gitlab"},
 			},
+			PackagePresets: map[string][]string{
+				"cli": []string{"github.com/spf13/cobra"},
+			},
 		}
 
 		err := config.Save(path, values)
@@ -102,6 +105,19 @@ var _ = Describe("ConfigLoadSave", func() {
 		values := config.Values{
 			User: "bad user",
 			Site: "github.com",
+		}
+
+		err := config.Save(path, values)
+
+		assert.Error(err)
+	})
+
+	It("rejects empty package preset names", func() {
+		path := filepath.Join(GinkgoT().TempDir(), "config.toml")
+		values := config.Values{
+			PackagePresets: map[string][]string{
+				"": []string{"github.com/spf13/cobra"},
+			},
 		}
 
 		err := config.Save(path, values)
@@ -228,5 +244,36 @@ var _ = Describe("ResolveUser", func() {
 
 		assert.Error(err)
 		assert.False(errors.Is(err, config.ErrMissingUser))
+	})
+})
+
+var _ = Describe("ResolvePackagePresetPackages", func() {
+	assert := assert.New(GinkgoT())
+
+	It("resolves packages from known presets", func() {
+		values := config.Values{
+			PackagePresets: map[string][]string{
+				"cli":  []string{"github.com/spf13/cobra", "github.com/spf13/viper"},
+				"test": []string{"github.com/stretchr/testify"},
+			},
+		}
+
+		packages, err := config.ResolvePackagePresetPackages(values, []string{"cli", "test"})
+
+		assert.NoError(err)
+		assert.Equal([]string{
+			"github.com/spf13/cobra",
+			"github.com/spf13/viper",
+			"github.com/stretchr/testify",
+		}, packages)
+	})
+
+	It("returns an error for unknown presets", func() {
+		values := config.Values{}
+
+		_, err := config.ResolvePackagePresetPackages(values, []string{"missing"})
+
+		assert.Error(err)
+		assert.Contains(err.Error(), "unknown package preset")
 	})
 })

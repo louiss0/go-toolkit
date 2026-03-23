@@ -209,4 +209,40 @@ var Config = Describe("config command", func() {
 		assert.Contains(output, "gitlab")
 		assert.Contains(output, "/tmp/gitlab")
 	})
+
+	It("adds and shows package presets", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err := testhelpers.ExecuteCmd(
+			rootCmd,
+			"config",
+			"package-preset",
+			"add",
+			"--name",
+			"cli",
+			"--package",
+			"github.com/spf13/cobra",
+			"--package",
+			"github.com/spf13/viper",
+		)
+		assert.NoError(err)
+
+		values, err := config.Load(configPath)
+		assert.NoError(err)
+		assert.Len(values.PackagePresets, 1)
+		assert.Equal([]string{"github.com/spf13/cobra", "github.com/spf13/viper"}, values.PackagePresets["cli"])
+
+		output, err := testhelpers.ExecuteCmd(rootCmd, "config", "package-preset", "list")
+		assert.NoError(err)
+		assert.Contains(output, "cli")
+		assert.Contains(output, "github.com/spf13/cobra")
+	})
 })

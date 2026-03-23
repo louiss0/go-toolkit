@@ -25,10 +25,11 @@ var knownSiteLabels = map[string]string{
 }
 
 type Values struct {
-	User      string           `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
-	Site      string           `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
-	Scaffold  ScaffoldConfig   `mapstructure:"scaffold" toml:"scaffold"`
-	Providers []ProviderConfig `mapstructure:"providers" toml:"providers"`
+	User           string              `mapstructure:"user" toml:"user" gozod:"regex=^\\S*$"`
+	Site           string              `mapstructure:"site" toml:"site" gozod:"regex=^$|^[^\\s.][^\\s]*\\.[^\\s]*[^\\s.]$"`
+	Scaffold       ScaffoldConfig      `mapstructure:"scaffold" toml:"scaffold"`
+	Providers      []ProviderConfig    `mapstructure:"providers" toml:"providers"`
+	PackagePresets map[string][]string `mapstructure:"package_presets" toml:"package_presets"`
 }
 
 type ProviderConfig struct {
@@ -106,6 +107,9 @@ func Save(path string, values Values) error {
 	if len(values.Providers) > 0 {
 		configFile.Set("providers", values.Providers)
 	}
+	if len(values.PackagePresets) > 0 {
+		configFile.Set("package_presets", values.PackagePresets)
+	}
 
 	return configFile.WriteConfigAs(path)
 }
@@ -113,6 +117,9 @@ func Save(path string, values Values) error {
 func validateValues(values Values) error {
 	if _, err := valuesSchema.Parse(values); err != nil {
 		return fmt.Errorf("invalid config values: %w", err)
+	}
+	if err := validatePackagePresets(values.PackagePresets); err != nil {
+		return err
 	}
 
 	return nil

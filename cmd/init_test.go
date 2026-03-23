@@ -107,4 +107,40 @@ var Init = Describe("init command", func() {
 		assert.NoError(err)
 		assert.Equal("github.com/lou/toolkit", summary["module_path"])
 	})
+
+	It("installs packages from flags and presets", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+		workingDir, err := os.Getwd()
+		assert.NoError(err)
+
+		err = os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\n[package_presets]\ncli = [\"github.com/spf13/cobra\", \"github.com/spf13/viper\"]\n"), 0o644)
+		assert.NoError(err)
+
+		err = os.Chdir(tempDir)
+		assert.NoError(err)
+		DeferCleanup(func() {
+			_ = os.Chdir(workingDir)
+		})
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		runner.On("Run", mock.Anything, "go", []string{"mod", "init", "github.com/lou/toolkit"}).Return(nil).Once()
+		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/onsi/ginkgo/v2", "github.com/spf13/cobra", "github.com/spf13/viper"}).Return(nil).Once()
+		runner.On("Run", mock.Anything, "git", []string{"init"}).Return(nil).Once()
+
+		output, err := testhelpers.ExecuteCmd(rootCmd, "init", "toolkit", "--package", "github.com/onsi/ginkgo/v2", "--preset", "cli")
+
+		assert.NoError(err)
+
+		var summary map[string]any
+		err = json.Unmarshal([]byte(output), &summary)
+		assert.NoError(err)
+		assert.Equal([]any{"github.com/onsi/ginkgo/v2", "github.com/spf13/cobra", "github.com/spf13/viper"}, summary["packages"])
+	})
 })

@@ -28,6 +28,7 @@ func NewConfigCmd(configPath *string, promptRunner prompt.Runner) *cobra.Command
 	cmd.AddCommand(newConfigSetSiteCmd(configPath))
 	cmd.AddCommand(newConfigSetScaffoldTestsCmd(configPath))
 	cmd.AddCommand(newConfigProviderCmd(configPath))
+	cmd.AddCommand(newConfigPackagePresetCmd(configPath))
 	cmd.AddCommand(newConfigRemoveCmd(configPath))
 
 	return cmd
@@ -161,11 +162,12 @@ type configInitPrompt struct {
 }
 
 type configSummary struct {
-	Path      string                  `json:"path"`
-	Site      string                  `json:"site"`
-	User      string                  `json:"user"`
-	Scaffold  config.ScaffoldConfig   `json:"scaffold"`
-	Providers []config.ProviderConfig `json:"providers"`
+	Path           string                  `json:"path"`
+	Site           string                  `json:"site"`
+	User           string                  `json:"user"`
+	Scaffold       config.ScaffoldConfig   `json:"scaffold"`
+	Providers      []config.ProviderConfig `json:"providers"`
+	PackagePresets map[string][]string     `json:"package_presets"`
 }
 
 func promptConfigInitInputs(cmd *cobra.Command, runner prompt.Runner) (configInitPrompt, error) {
@@ -256,13 +258,18 @@ func buildConfigSummary(configPath string, values config.Values) (configSummary,
 	if providers == nil {
 		providers = []config.ProviderConfig{}
 	}
+	packagePresets := values.PackagePresets
+	if packagePresets == nil {
+		packagePresets = map[string][]string{}
+	}
 
 	return configSummary{
-		Path:      configPath,
-		Site:      site,
-		User:      user,
-		Scaffold:  values.Scaffold,
-		Providers: providers,
+		Path:           configPath,
+		Site:           site,
+		User:           user,
+		Scaffold:       values.Scaffold,
+		Providers:      providers,
+		PackagePresets: packagePresets,
 	}, nil
 }
 
@@ -331,6 +338,19 @@ func newConfigProviderCmd(configPath *string) *cobra.Command {
 	cmd.AddCommand(newConfigProviderAddCmd(configPath))
 	cmd.AddCommand(newConfigProviderListCmd(configPath))
 	cmd.AddCommand(newConfigProviderRemoveCmd(configPath))
+
+	return cmd
+}
+
+func newConfigPackagePresetCmd(configPath *string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "package-preset",
+		Short: "Manage package install presets",
+	}
+
+	cmd.AddCommand(newConfigPackagePresetAddCmd(configPath))
+	cmd.AddCommand(newConfigPackagePresetListCmd(configPath))
+	cmd.AddCommand(newConfigPackagePresetRemoveCmd(configPath))
 
 	return cmd
 }
@@ -430,6 +450,105 @@ func newConfigProviderListCmd(configPath *string) *cobra.Command {
 
 			rows := lo.Map(values.Providers, func(provider config.ProviderConfig, _ int) string {
 				return fmt.Sprintf("%s\t%s", provider.Name, provider.Path)
+			})
+			if len(rows) > 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(rows, "\n"))
+			}
+
+			return nil
+		},
+	}
+}
+
+func newConfigPackagePresetAddCmd(configPath *string) *cobra.Command {
+	var nameFlag string
+	var packageFlags []string
+
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "Add a package install preset",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(nameFlag) == "" {
+				return custom_errors.CreateInvalidInputErrorWithMessage("package preset name is required")
+			}
+			if len(packageFlags) == 0 {
+				return custom_errors.CreateInvalidInputErrorWithMessage("at least one package is required")
+			}
+
+			cmdutil.LogInfoIfProduction("config package preset add: loading config")
+			values, err := config.Load(*configPath)
+			if err != nil {
+				return err
+			}
+
+			if values.PackagePresets == nil {
+				values.PackagePresets = map[string][]string{}
+			}
+			values.PackagePresets[nameFlag] = lo.Uniq(packageFlags)
+			if err := config.Save(*configPath, values); err != nil {
+				return err
+			}
+
+			fmt.Fprintln(cmd.OutOrStdout(), "package preset saved")
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&nameFlag, "name", "", "preset name")
+	cmd.Flags().StringSliceVar(&packageFlags, "package", nil, "packages included in the preset")
+
+	return cmd
+}
+
+func newConfigPackagePresetRemoveCmd(configPath *string) *cobra.Command {
+	var nameFlag string
+
+	cmd := &cobra.Command{
+		Use:   "remove",
+		Short: "Remove a package install preset",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(nameFlag) == "" {
+				return custom_errors.CreateInvalidInputErrorWithMessage("package preset name is required")
+			}
+
+			cmdutil.LogInfoIfProduction("config package preset remove: loading config")
+			values, err := config.Load(*configPath)
+			if err != nil {
+				return err
+			}
+
+			if _, ok := values.PackagePresets[nameFlag]; !ok {
+				return custom_errors.CreateInvalidInputErrorWithMessage("package preset name not found")
+			}
+
+			delete(values.PackagePresets, nameFlag)
+			if err := config.Save(*configPath, values); err != nil {
+				return err
+			}
+
+			fmt.Fprintln(cmd.OutOrStdout(), "package preset removed")
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&nameFlag, "name", "", "preset name")
+
+	return cmd
+}
+
+func newConfigPackagePresetListCmd(configPath *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List package install presets",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmdutil.LogInfoIfProduction("config package preset list: loading config")
+			values, err := config.Load(*configPath)
+			if err != nil {
+				return err
+			}
+
+			rows := lo.Map(config.KnownPackagePresetNames(values), func(name string, _ int) string {
+				return fmt.Sprintf("%s\t%s", name, strings.Join(values.PackagePresets[name], ", "))
 			})
 			if len(rows) > 0 {
 				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(rows, "\n"))

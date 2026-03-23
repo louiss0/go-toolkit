@@ -81,7 +81,7 @@ It shortens common tasks like init, remove, and scaffold.`,
 	cmd.PersistentFlags().StringVar(&configPath, "config", configPath, "config file path")
 
 	initCmd := NewInitCmd(commandRunner, promptRunner, &configPath)
-	addCmd := NewAddCmd(commandRunner, &configPath)
+	addCmd := NewAddCmd(commandRunner, promptRunner, &configPath)
 	removeCmd := NewRemoveCmd(commandRunner, &configPath)
 	scaffoldCmd := NewScaffoldCmd(commandRunner, &configPath)
 	testCmd := NewTestCmd(commandRunner)

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/charmbracelet/huh"
 	"github.com/louiss0/go-toolkit/custom_errors"
@@ -14,7 +13,6 @@ import (
 	"github.com/louiss0/go-toolkit/internal/project"
 	"github.com/louiss0/go-toolkit/internal/prompt"
 	"github.com/louiss0/go-toolkit/internal/runner"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +20,8 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 	var siteFlag string
 	var userFlag string
 	var allowFull bool
+	var packageFlags []string
+	var presetFlags []string
 
 	cmd := &cobra.Command{
 		Use:   "init [package]",
@@ -100,9 +100,13 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				return err
 			}
 
-			if len(promptValues.Packages) > 0 {
+			installPackages, err := resolveInstallPackages(values, packageFlags, presetFlags, promptValues.Packages)
+			if err != nil {
+				return err
+			}
+			if len(installPackages) > 0 {
 				cmdutil.LogInfoIfProduction("init: installing packages")
-				args := append([]string{"get"}, promptValues.Packages...)
+				args := append([]string{"get"}, installPackages...)
 				if err := commandRunner.Run(cmd, "go", args...); err != nil {
 					return err
 				}
@@ -134,6 +138,8 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				cmdutil.LogInfoIfProduction("init: git init skipped")
 			}
 
+			promptValues.Packages = installPackages
+
 			return writeInitSummary(cmd, modulePath, site, user, promptValues)
 		},
 	}
@@ -141,6 +147,8 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 	cmd.Flags().StringVar(&userFlag, "user", "", "override the configured user")
 	cmd.Flags().StringVar(&siteFlag, "site", "", "override the configured site")
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
+	cmd.Flags().StringSliceVar(&packageFlags, "package", nil, "module paths to install after init")
+	cmd.Flags().StringSliceVar(&presetFlags, "preset", nil, "package preset names to install after init")
 	cmdutil.RegisterSiteCompletion(cmd, "site")
 
 	return cmd
@@ -370,25 +378,6 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 
 	promptValues.Packages = parsePackageList(packageInput)
 	return promptValues, nil
-}
-
-func parsePackageList(value string) []string {
-	parts := strings.FieldsFunc(value, func(r rune) bool {
-		return r == ',' || unicode.IsSpace(r)
-	})
-
-	packages := lo.FilterMap(parts, func(part string, _ int) (string, bool) {
-		trimmed := strings.TrimSpace(part)
-		if trimmed == "" {
-			return "", false
-		}
-		return trimmed, true
-	})
-	if len(packages) == 0 {
-		return nil
-	}
-
-	return packages
 }
 
 func writeInitSummary(cmd *cobra.Command, modulePath string, site string, user string, prompt initPrompt) error {
