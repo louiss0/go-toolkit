@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          install_url: https://releases.nixos.org/nix/nix-2.18.1/install
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Verify Nix installation
+        run: |
+          nix --version
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
+          echo "NIX_PATH=$NIX_PATH" >> "$GITHUB_ENV"
+          if [ -n "${NIX_PROFILES:-}" ]; then
+            echo "NIX_PROFILES=$NIX_PROFILES" >> "$GITHUB_ENV"
+          fi
+          if [ -n "${NIX_SSL_CERT_FILE:-}" ]; then
+            echo "NIX_SSL_CERT_FILE=$NIX_SSL_CERT_FILE" >> "$GITHUB_ENV"
+          fi
+
+      - name: Ensure nix-prefetch-url is available
+        run: |
+          export PATH="$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:$PATH"
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
+          which nix
+          which nix-prefetch-url || true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_DEPLOY_KEY: ${{ secrets.GORELEASER_DEPLOY_KEY }}
