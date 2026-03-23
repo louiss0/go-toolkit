@@ -22,8 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
+	"context"
 
+	"github.com/carapace-sh/carapace"
+	"github.com/charmbracelet/fang"
 	"github.com/kaptinlin/gozod"
 	"github.com/louiss0/g-tools/mode"
 	"github.com/louiss0/go-toolkit/internal/modindex/config"
@@ -70,26 +72,70 @@ func NewRootCmdWithOptions(options RootOptions) *cobra.Command {
 		Short: "Go package delegation and scaffolding",
 		Long: `Go Toolkit is a helper for delegating Go module workflows.
 It shortens common tasks like init, remove, and scaffold.`,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
 	}
 
 	cmd.PersistentFlags().StringVar(&configPath, "config", configPath, "config file path")
 
-	cmd.AddCommand(NewInitCmd(commandRunner, promptRunner, &configPath))
-	cmd.AddCommand(NewAddCmd(commandRunner, &configPath))
-	cmd.AddCommand(NewRemoveCmd(commandRunner, &configPath))
-	cmd.AddCommand(NewScaffoldCmd(commandRunner, &configPath))
-	cmd.AddCommand(NewTestCmd(commandRunner))
-	cmd.AddCommand(NewConfigCmd(&configPath, promptRunner))
-	cmd.AddCommand(NewSearchCmd())
+	initCmd := NewInitCmd(commandRunner, promptRunner, &configPath)
+	addCmd := NewAddCmd(commandRunner, &configPath)
+	removeCmd := NewRemoveCmd(commandRunner, &configPath)
+	scaffoldCmd := NewScaffoldCmd(commandRunner, &configPath)
+	testCmd := NewTestCmd(commandRunner)
+	configCmd := NewConfigCmd(&configPath, promptRunner)
+	searchCmd := NewSearchCmd()
+
+	cmd.AddCommand(initCmd, addCmd, removeCmd, scaffoldCmd, testCmd, configCmd, searchCmd)
+
+	configureCompletions(cmd, scaffoldCmd, configCmd)
 
 	return cmd
 }
 
 var rootCmd = NewRootCmd()
 
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+func Execute() error {
+	return fang.Execute(context.Background(), rootCmd, fang.WithoutCompletions())
+}
+
+func configureCompletions(root *cobra.Command, scaffoldCmd *cobra.Command, configCmd *cobra.Command) {
+	rootCarapace := carapace.Gen(root)
+	rootCarapace.FlagCompletion(carapace.ActionMap{
+		"config": carapace.ActionFiles(".toml"),
+	})
+
+	carapace.Gen(scaffoldCmd).FlagCompletion(carapace.ActionMap{
+		"folder": carapace.ActionDirectories(),
+		"site":   carapace.ActionValues(config.KnownSites()...),
+	})
+
+	configCommands := configCmd.Commands()
+	if len(configCommands) == 0 {
+		return
+	}
+
+	for _, command := range configCommands {
+		switch command.Name() {
+		case "set-site":
+			carapace.Gen(command).PositionalCompletion(
+				carapace.ActionValues(config.KnownSites()...),
+			)
+		case "provider":
+			configureProviderCompletions(command)
+		}
+	}
+}
+
+func configureProviderCompletions(providerCmd *cobra.Command) {
+	for _, command := range providerCmd.Commands() {
+		if command.Name() != "add" {
+			continue
+		}
+
+		carapace.Gen(command).FlagCompletion(carapace.ActionMap{
+			"path": carapace.ActionFiles(),
+		})
 	}
 }

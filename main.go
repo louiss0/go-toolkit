@@ -1,6 +1,10 @@
 package main
 
-import "github.com/louiss0/go-toolkit/cmd"
+import (
+	"os"
+
+	"github.com/louiss0/go-toolkit/cmd"
+)
 
 /*
 Copyright © 2025 Shelton Louis
@@ -25,5 +29,7 @@ THE SOFTWARE.
 */
 
 func main() {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
