@@ -8,25 +8,25 @@ import (
 )
 
 // InvalidFlag represents an error indicating an invalid flag.
-var InvalidFlag = errors.New("Invalid Flag:")
+var InvalidFlag = errors.New("invalid flag")
 
 // InvalidArgument represents an error indicating an invalid argument.
-var InvalidArgument = errors.New("Invalid Argument:")
+var InvalidArgument = errors.New("invalid argument")
 
 // InvalidInput represents an error indicating invalid user input.
-var InvalidInput = errors.New("Invalid Input:")
+var InvalidInput = errors.New("invalid input")
 
 // FlagName is a string type representing the name of a flag.
 type FlagName string
 
 // Error validates the FlagName and returns an error if it's invalid.
 // A valid flag name must contain only alphanumeric characters.
-func (self FlagName) Error() error {
+func (name FlagName) Error() error {
 
 	regex := regexp.MustCompile(`^[a-z0-9]+$`)
 
-	if !regex.MatchString(string(self)) {
-		return fmt.Errorf("%w %s a flag name must be alphanumeric from start to end %s", InvalidFlag, self, string(self))
+	if !regex.MatchString(string(name)) {
+		return fmt.Errorf("%w: %s flag name must be alphanumeric from start to end", InvalidFlag, name)
 	}
 
 	return nil
@@ -40,20 +40,16 @@ var CreateInvalidFlagErrorWithMessage = func(flagName FlagName, message string) 
 		return err
 	}
 
-	return fmt.Errorf("%w %s %s", InvalidFlag, flagName, message)
+	return fmt.Errorf("%w: %s %s", InvalidFlag, flagName, message)
 
 }
 
 // CreateInvalidArgumentErrorWithMessage creates an error with a custom message for an invalid argument.
 var CreateInvalidArgumentErrorWithMessage = func(message string) error {
-
-	return fmt.Errorf("%w %s", InvalidArgument, message)
-
+	return fmt.Errorf("%w: %s", InvalidArgument, message)
 }
 
 // CreateInvalidInputErrorWithMessage creates an error with a custom message for invalid input.
 var CreateInvalidInputErrorWithMessage = func(message string) error {
-
-	return fmt.Errorf("%w %s", InvalidInput, message)
-
+	return fmt.Errorf("%w: %s", InvalidInput, message)
 }

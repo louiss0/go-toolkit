@@ -271,7 +271,7 @@ var Config = Describe("config command", func() {
 
 		assert.Error(err)
 		assert.Contains(err.Error(), "invalid argument")
-		assert.Contains(err.Error(), "The name is empty")
+		assert.Contains(err.Error(), "name must not be empty")
 	})
 
 	It("updates provider assurance", func() {

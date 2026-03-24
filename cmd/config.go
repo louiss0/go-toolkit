@@ -58,8 +58,7 @@ func newConfigSetUserCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "user saved")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "user saved")
 		},
 	}
 }
@@ -88,8 +87,7 @@ func newConfigSetSiteCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "site saved")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "site saved")
 		},
 	}
 
@@ -121,8 +119,7 @@ func newConfigSetAssureProvidersCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "provider assurance updated")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "provider assurance updated")
 		},
 	}
 }
@@ -359,8 +356,7 @@ func newConfigSetScaffoldTestsCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "scaffold tests updated")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "scaffold tests updated")
 		},
 	}
 }
@@ -424,8 +420,7 @@ func newConfigProviderAddCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "provider added")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "provider added")
 		},
 	}
 
@@ -466,8 +461,7 @@ func newConfigProviderRemoveCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "provider removed")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "provider removed")
 		},
 	}
 
@@ -491,7 +485,7 @@ func newConfigProviderListCmd(configPath *string) *cobra.Command {
 				return fmt.Sprintf("%s\t%s", provider.Name, provider.Path)
 			})
 			if len(rows) > 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(rows, "\n"))
+				return cmdutil.WriteLine(cmd.OutOrStdout(), strings.Join(rows, "\n"))
 			}
 
 			return nil
@@ -541,8 +535,7 @@ func newConfigPackagePresetAddCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "package preset saved")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "package preset saved")
 		},
 	}
 
@@ -586,8 +579,7 @@ func newConfigPackagePresetRemoveCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "package preset removed")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "package preset removed")
 		},
 	}
 
@@ -611,7 +603,7 @@ func newConfigPackagePresetListCmd(configPath *string) *cobra.Command {
 				return fmt.Sprintf("%s\t%s", name, strings.Join(values.PackagePresets[name], ", "))
 			})
 			if len(rows) > 0 {
-				fmt.Fprintln(cmd.OutOrStdout(), strings.Join(rows, "\n"))
+				return cmdutil.WriteLine(cmd.OutOrStdout(), strings.Join(rows, "\n"))
 			}
 
 			return nil
@@ -635,8 +627,7 @@ func newConfigRemoveCmd(configPath *string) *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(cmd.OutOrStdout(), "config file removed")
-			return nil
+			return cmdutil.WriteLine(cmd.OutOrStdout(), "config file removed")
 		},
 	}
 }

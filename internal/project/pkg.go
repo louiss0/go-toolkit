@@ -42,7 +42,7 @@ func ensureInternalDir(root string) error {
 	return os.MkdirAll(filepath.Join(root, "internal"), 0o755)
 }
 
-func ensureMainFile(root string) error {
+func ensureMainFile(root string) (err error) {
 	path := filepath.Join(root, "main.go")
 	if _, err := os.Stat(path); err == nil {
 		return nil
@@ -54,7 +54,12 @@ func ensureMainFile(root string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		closeErr := file.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 
 	_, err = file.WriteString(mainTemplate)
 	return err

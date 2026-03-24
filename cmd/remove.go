@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/louiss0/go-toolkit/custom_errors"
@@ -75,8 +74,10 @@ func NewRemoveCmd(commandRunner runner.Runner, configPath *string) *cobra.Comman
 			uniqueModules := lo.Uniq(modulePaths)
 			if dryRun {
 				cmdutil.LogInfoIfProduction("remove: dry run output")
-				fmt.Fprintln(cmd.OutOrStdout(), "go "+strings.Join(append([]string{"get"}, uniqueModules...), " "))
-				return nil
+				return cmdutil.WriteLine(
+					cmd.OutOrStdout(),
+					"go "+strings.Join(append([]string{"get"}, uniqueModules...), " "),
+				)
 			}
 
 			cmdutil.LogInfoIfProduction("remove: executing go get")

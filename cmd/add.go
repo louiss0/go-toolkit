@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -94,8 +93,10 @@ func NewAddCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configPa
 			}
 			if dryRun {
 				cmdutil.LogInfoIfProduction("add: dry run output")
-				fmt.Fprintln(cmd.OutOrStdout(), "go "+strings.Join(append([]string{"get"}, uniqueModules...), " "))
-				return nil
+				return cmdutil.WriteLine(
+					cmd.OutOrStdout(),
+					"go "+strings.Join(append([]string{"get"}, uniqueModules...), " "),
+				)
 			}
 
 			cmdutil.LogInfoIfProduction("add: executing go get")

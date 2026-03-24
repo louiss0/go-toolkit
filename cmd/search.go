@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/louiss0/go-toolkit/custom_errors"
 	"github.com/louiss0/go-toolkit/internal/cmdutil"
 	"github.com/louiss0/go-toolkit/internal/search"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
@@ -51,9 +49,11 @@ func NewSearchCmd() *cobra.Command {
 				return err
 			}
 
-			lo.ForEach(versions, func(version string, _ int) {
-				fmt.Fprintln(cmd.OutOrStdout(), version)
-			})
+			for _, version := range versions {
+				if err := cmdutil.WriteLine(cmd.OutOrStdout(), version); err != nil {
+					return err
+				}
+			}
 
 			return nil
 		},
