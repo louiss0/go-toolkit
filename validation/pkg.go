@@ -88,3 +88,51 @@ func ValidateSite(site string, allowFull bool, knownSites []string) error {
 		"unsupported site " + trimmed + " (known: " + known + "). use --full to allow custom sites",
 	)
 }
+
+func ParseShortPackageList(value string, field string) ([]string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	packages := strings.Fields(trimmed)
+	if lo.ContainsBy(packages, func(packageName string) bool {
+		return !IsShortPackagePath(packageName)
+	}) {
+		return nil, custom_errors.CreateInvalidInputErrorWithMessage(
+			field + " must use space-separated username/package entries",
+		)
+	}
+
+	return packages, nil
+}
+
+func RequiredShortPackageList(value string, field string) ([]string, error) {
+	packages, err := ParseShortPackageList(value, field)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(packages) == 0 {
+		return nil, custom_errors.CreateInvalidInputErrorWithMessage(
+			field + " must use space-separated username/package entries",
+		)
+	}
+
+	return packages, nil
+}
+
+func IsShortPackagePath(value string) bool {
+	parts := strings.Split(strings.TrimSpace(value), "/")
+	if len(parts) != 2 {
+		return false
+	}
+
+	if strings.Contains(parts[0], ".") {
+		return false
+	}
+
+	return lo.EveryBy(parts, func(part string) bool {
+		return part != "" && !strings.ContainsAny(part, ", \t\r\n")
+	})
+}

@@ -102,6 +102,10 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				}
 				return err
 			}
+			installPackages, err = resolveModulePaths(installPackages, site, user)
+			if err != nil {
+				return err
+			}
 
 			cmdutil.LogInfoIfProduction("init: resolving module path for %s", site)
 			modulePath, err := packagepath.ResolveModulePath(moduleInput, site, user)
@@ -375,8 +379,12 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 
 	packageInput, err := runner.Input(cmd, prompt.Input{
 		Title:       "Packages to install",
-		Description: "Space or comma separated module paths; leave blank to skip.",
-		Placeholder: "github.com/spf13/cobra, github.com/spf13/viper",
+		Description: "Optional; use space-separated username/package entries, or leave blank to skip.",
+		Placeholder: "samber/lo stretchr/testify",
+		Validate: func(value string) error {
+			_, err := validation.ParseShortPackageList(value, "packages to install")
+			return err
+		},
 	})
 	if err != nil {
 		if errors.Is(err, huh.ErrUserAborted) {
@@ -385,7 +393,10 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 		return initPrompt{}, err
 	}
 
-	promptValues.Packages = parsePackageList(packageInput)
+	promptValues.Packages, err = validation.ParseShortPackageList(packageInput, "packages to install")
+	if err != nil {
+		return initPrompt{}, err
+	}
 	return promptValues, nil
 }
 

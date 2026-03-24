@@ -10,7 +10,6 @@ import (
 	"github.com/louiss0/go-toolkit/custom_flags"
 	"github.com/louiss0/go-toolkit/internal/cmdutil"
 	"github.com/louiss0/go-toolkit/internal/modindex/config"
-	"github.com/louiss0/go-toolkit/internal/packagepath"
 	"github.com/louiss0/go-toolkit/internal/prompt"
 	"github.com/louiss0/go-toolkit/internal/runner"
 	"github.com/louiss0/go-toolkit/validation"
@@ -89,18 +88,10 @@ func NewAddCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configPa
 			}
 
 			cmdutil.LogInfoIfProduction("add: resolving module paths for %s", site)
-
-			modulePaths := make([]string, 0, len(targetPackages))
-			for _, input := range targetPackages {
-				modulePath, err := packagepath.ResolveModulePath(input, site, user)
-				if err != nil {
-					return err
-				}
-
-				modulePaths = append(modulePaths, modulePath)
+			uniqueModules, err := resolveModulePaths(targetPackages, site, user)
+			if err != nil {
+				return err
 			}
-
-			uniqueModules := lo.Uniq(modulePaths)
 			if dryRun {
 				cmdutil.LogInfoIfProduction("add: dry run output")
 				fmt.Fprintln(cmd.OutOrStdout(), "go "+strings.Join(append([]string{"get"}, uniqueModules...), " "))
@@ -130,18 +121,16 @@ func NewAddCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configPa
 func promptAddPackages(cmd *cobra.Command, runner prompt.Runner) ([]string, error) {
 	packageInput, err := runner.Input(cmd, prompt.Input{
 		Title:       "Packages to add",
-		Description: "Space or comma separated package paths; presets can be used with --preset.",
-		Placeholder: "samber/lo, stretchr/testify",
+		Description: "Use space-separated username/package entries; presets can be used with --preset.",
+		Placeholder: "samber/lo stretchr/testify",
 		Validate: func(value string) error {
-			if _, err := validation.NonEmptyStrings(parsePackageList(value), "package values"); err != nil || len(parsePackageList(value)) == 0 {
-				return errors.New("at least one package is required")
-			}
-			return nil
+			_, err := validation.RequiredShortPackageList(value, "packages to add")
+			return err
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return parsePackageList(packageInput), nil
+	return validation.RequiredShortPackageList(packageInput, "packages to add")
 }

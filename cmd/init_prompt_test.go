@@ -72,7 +72,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepSelect, value: projectTypeLibrary},
 			promptStep{kind: promptStepSelect, value: testChoiceNo},
 			promptStep{kind: promptStepSelect, value: gitChoiceNo},
-			promptStep{kind: promptStepInput, value: "github.com/spf13/cobra"},
+			promptStep{kind: promptStepInput, value: "samber/lo"},
 		)
 
 		values, err := promptInitInputs(&cobra.Command{}, mock)
@@ -81,7 +81,7 @@ var InitPrompt = Describe("Init prompt", func() {
 		assert.Equal(projectTypeLibrary, values.ProjectType)
 		assert.Equal(testChoiceNo, values.TestDrivenChoice)
 		assert.Equal(gitChoiceNo, values.GitChoice)
-		assert.Equal([]string{"github.com/spf13/cobra"}, values.Packages)
+		assert.Equal([]string{"samber/lo"}, values.Packages)
 	})
 
 	It("stops after test skip remaining", func() {
@@ -132,5 +132,39 @@ var InitPrompt = Describe("Init prompt", func() {
 
 		assert.NoError(err)
 		assert.Nil(values.Packages)
+	})
+
+	It("allows skipping package installs with a blank value", func() {
+		mock := newPromptMock(
+			promptStep{kind: promptStepInput, value: "toolkit"},
+			promptStep{kind: promptStepInput, value: "lou"},
+			promptStep{kind: promptStepSelect, value: "github.com"},
+			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: testChoiceYes},
+			promptStep{kind: promptStepSelect, value: gitChoiceYes},
+			promptStep{kind: promptStepInput, value: "   "},
+		)
+
+		values, err := promptInitInputs(&cobra.Command{}, mock)
+
+		assert.NoError(err)
+		assert.Nil(values.Packages)
+	})
+
+	It("rejects invalid package install syntax", func() {
+		mock := newPromptMock(
+			promptStep{kind: promptStepInput, value: "toolkit"},
+			promptStep{kind: promptStepInput, value: "lou"},
+			promptStep{kind: promptStepSelect, value: "github.com"},
+			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: testChoiceYes},
+			promptStep{kind: promptStepSelect, value: gitChoiceYes},
+			promptStep{kind: promptStepInput, value: "github.com/spf13/cobra"},
+		)
+
+		_, err := promptInitInputs(&cobra.Command{}, mock)
+
+		assert.Error(err)
+		assert.Contains(err.Error(), "packages to install must use space-separated username/package entries")
 	})
 })

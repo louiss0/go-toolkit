@@ -51,3 +51,38 @@ var _ = Describe("ValidateSite", func() {
 		assert.Contains(err.Error(), "unsupported site")
 	})
 })
+
+var _ = Describe("ParseShortPackageList", func() {
+	It("accepts blank input for optional prompts", func() {
+		packages, err := validation.ParseShortPackageList("   ", "packages to install")
+
+		assert.NoError(err)
+		assert.Nil(packages)
+	})
+
+	It("parses space-delimited short package paths", func() {
+		packages, err := validation.ParseShortPackageList("samber/lo stretchr/testify", "packages to install")
+
+		assert.NoError(err)
+		assert.Equal([]string{"samber/lo", "stretchr/testify"}, packages)
+	})
+
+	It("rejects commas and full module paths", func() {
+		_, err := validation.ParseShortPackageList(
+			"samber/lo, github.com/spf13/cobra",
+			"packages to install",
+		)
+
+		assert.Error(err)
+		assert.Contains(err.Error(), "packages to install must use space-separated username/package entries")
+	})
+})
+
+var _ = Describe("RequiredShortPackageList", func() {
+	It("requires at least one short package path", func() {
+		_, err := validation.RequiredShortPackageList("   ", "packages to add")
+
+		assert.Error(err)
+		assert.Contains(err.Error(), "packages to add must use space-separated username/package entries")
+	})
+})

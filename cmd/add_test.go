@@ -112,7 +112,7 @@ var Add = Describe("add command", func() {
 		assert.NoError(err)
 
 		promptRunner := testhelpers.NewPromptRunnerMock(
-			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "samber/lo, stretchr/testify"},
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "samber/lo stretchr/testify"},
 		)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
@@ -132,6 +132,30 @@ var Add = Describe("add command", func() {
 
 		assert.NoError(err)
 		runner.AssertExpectations(GinkgoT())
+	})
+
+	It("rejects invalid package prompt syntax", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\n"), 0o644)
+		assert.NoError(err)
+
+		promptRunner := testhelpers.NewPromptRunnerMock(
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "samber/lo, stretchr/testify"},
+		)
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: promptRunner,
+			ConfigPath:   configPath,
+		})
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "add")
+
+		assert.Error(err)
+		assert.Contains(err.Error(), "packages to add must use space-separated username/package entries")
 	})
 
 	It("adds packages from presets", func() {

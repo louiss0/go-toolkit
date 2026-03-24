@@ -74,7 +74,7 @@ var Init = Describe("init command", func() {
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "library"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "yes"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "no"},
-			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "github.com/samber/lo"},
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "samber/lo"},
 		)
 
 		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
