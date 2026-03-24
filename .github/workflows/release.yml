@@ -64,4 +64,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_DEPLOY_KEY: ${{ secrets.GORELEASER_DEPLOY_KEY }}
-          GORELEASER_PACKAGE_REPO_TOKEN: ${{ secrets.GORELEASER_PACKAGE_REPO_TOKEN }}
