@@ -6,7 +6,7 @@ project_name: go-toolkit
 builds:
   - id: go-toolkit
     main: ./main.go
-    binary: go-toolkit
+    binary: gtk
     goos:
       - linux
       - darwin
@@ -42,12 +42,22 @@ winget:
     short_description: "CLI for Go module workflows and scaffolding."
     homepage: "https://github.com/louiss0/go-toolkit"
     license: MIT
+    license_url: "https://github.com/louiss0/go-toolkit/blob/main/LICENSE"
+    copyright: "Copyright (c) 2025 Shelton Louis"
     publisher_url: "https://github.com/louiss0"
     publisher_support_url: "https://github.com/louiss0/go-toolkit/issues/new"
     package_identifier: the-code-fixer-23.go-toolkit
     path: manifests/t/the-code-fixer-23/go-toolkit/{{ .Version }}
     commit_msg_template: "{{ .PackageIdentifier }}: {{ .Tag }}"
     release_notes: "{{.Changelog}}"
+    release_notes_url: "https://github.com/louiss0/go-toolkit/releases/tag/{{ .Tag }}"
+    installation_notes: "Installs the `gtk` executable."
+    tags:
+      - go
+      - golang
+      - cli
+      - scaffolding
+      - modules
     repository:
       owner: louiss0
       name: winget-pkgs
@@ -63,9 +73,10 @@ homebrew_casks:
   - name: go-toolkit
     binaries:
       - go-toolkit
+      - gtk
     commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
     homepage: "https://github.com/louiss0/go-toolkit"
-    description: "CLI for Go module workflows and scaffolding."
+    description: "CLI for Go scaffolding and dependency workflows."
     repository:
       owner: louiss0
       name: homebrew-the-code-fixer-23
@@ -76,7 +87,7 @@ nix:
     commit_msg_template: "{{ .ProjectName }}: {{ .Tag }}"
     path: "pkgs/{{ .ProjectName }}/default.nix"
     homepage: "https://github.com/louiss0/go-toolkit"
-    description: "CLI for Go module workflows and scaffolding."
+    description: "CLI for scaffolding Go projects and managing module dependencies."
     license: mit
     repository:
       owner: louiss0
