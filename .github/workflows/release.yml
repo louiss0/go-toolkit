@@ -55,6 +55,31 @@ jobs:
           which nix
           which nix-prefetch-url || true
 
+      - name: Normalize GoReleaser deploy key
+        env:
+          GORELEASER_DEPLOY_KEY_RAW: ${{ secrets.GORELEASER_DEPLOY_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import textwrap
+
+          raw_key = os.environ["GORELEASER_DEPLOY_KEY_RAW"].strip()
+          body = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
+          body = body.replace("-----END PRIVATE KEY-----", "")
+          body = "".join(body.split())
+
+          formatted_key = "\n".join([
+              "-----BEGIN PRIVATE KEY-----",
+              *textwrap.wrap(body, 64),
+              "-----END PRIVATE KEY-----",
+          ])
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              env_file.write("GORELEASER_DEPLOY_KEY<<EOF\n")
+              env_file.write(formatted_key)
+              env_file.write("\nEOF\n")
+          PY
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
