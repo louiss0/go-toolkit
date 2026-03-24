@@ -47,14 +47,13 @@ winget:
     copyright: "Copyright (c) 2025 Shelton Louis"
     publisher_url: "https://github.com/louiss0"
     publisher_support_url: "https://github.com/louiss0/go-toolkit/issues/new"
-    package_identifier: SheltonLouis.GoToolkit
+    package_identifier: the-code-fixer-23.GoToolkit
     package_name: "go-toolkit"
-    path: manifests/s/SheltonLouis/go-toolkit/{{ .Version }}
+    path: manifests/s/the-code-fixer-23/go-toolkit/{{ .Version }}
     commit_msg_template: "{{ .PackageIdentifier }}: {{ .Tag }}"
     release_notes: "{{.Changelog}}"
     release_notes_url: "https://github.com/louiss0/go-toolkit/releases/tag/{{ .Tag }}"
     installation_notes: "Installs the `gtk` executable."
-    skip_upload: '{{ eq (index .Env "GORELEASER_PACKAGE_REPO_TOKEN") "" }}'
     tags:
       - go
       - golang
@@ -65,7 +64,6 @@ winget:
       owner: louiss0
       name: winget-pkgs
       branch: "go-toolkit-{{ .Version }}"
-      token: '{{ index .Env "GORELEASER_PACKAGE_REPO_TOKEN" }}'
       pull_request:
         enabled: true
         base:
@@ -80,12 +78,10 @@ homebrew_casks:
     commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
     homepage: "https://github.com/louiss0/go-toolkit"
     description: "CLI for Go scaffolding and dependency workflows."
-    skip_upload: '{{ eq (index .Env "GORELEASER_PACKAGE_REPO_TOKEN") "" }}'
     repository:
       owner: louiss0
       name: homebrew-the-code-fixer-23
       branch: main
-      token: '{{ index .Env "GORELEASER_PACKAGE_REPO_TOKEN" }}'
 
 nix:
   - name: go-toolkit
@@ -94,9 +90,7 @@ nix:
     homepage: "https://github.com/louiss0/go-toolkit"
     description: "CLI for scaffolding Go projects and managing module dependencies."
     license: mit
-    skip_upload: '{{ eq (index .Env "GORELEASER_PACKAGE_REPO_TOKEN") "" }}'
     repository:
       owner: louiss0
       name: the-code-fixer-23-nur
       branch: main
-      token: '{{ index .Env "GORELEASER_PACKAGE_REPO_TOKEN" }}'
