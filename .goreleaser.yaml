@@ -63,7 +63,7 @@ winget:
     repository:
       owner: louiss0
       name: winget-pkgs
-      branch: main
+      branch: master
       git:
         url: "git@github.com:louiss0/winget-pkgs.git"
         private_key: "{{ .Env.GORELEASER_WINGET_DEPLOY_KEY_PATH }}"
