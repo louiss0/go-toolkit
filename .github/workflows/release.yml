@@ -55,6 +55,35 @@ jobs:
           which nix
           which nix-prefetch-url || true
 
+      - name: Write GoReleaser deploy keys
+        env:
+          GORELEASER_WINGET_DEPLOY_KEY: ${{ secrets.GORELEASER_WINGET_DEPLOY_KEY }}
+          GORELEASER_HOMEBREW_DEPLOY_KEY: ${{ secrets.GORELEASER_HOMEBREW_DEPLOY_KEY }}
+          GORELEASER_NIX_DEPLOY_KEY: ${{ secrets.GORELEASER_NIX_DEPLOY_KEY }}
+        run: |
+          write_key() {
+            key_path="$1"
+            key_value="$2"
+
+            umask 077
+            printf '%s\n' "$key_value" | tr -d '\r' > "$key_path"
+            chmod 600 "$key_path"
+          }
+
+          winget_key_path="$RUNNER_TEMP/goreleaser-winget"
+          homebrew_key_path="$RUNNER_TEMP/goreleaser-homebrew"
+          nix_key_path="$RUNNER_TEMP/goreleaser-nix"
+
+          write_key "$winget_key_path" "$GORELEASER_WINGET_DEPLOY_KEY"
+          write_key "$homebrew_key_path" "$GORELEASER_HOMEBREW_DEPLOY_KEY"
+          write_key "$nix_key_path" "$GORELEASER_NIX_DEPLOY_KEY"
+
+          {
+            echo "GORELEASER_WINGET_DEPLOY_KEY_PATH=$winget_key_path"
+            echo "GORELEASER_HOMEBREW_DEPLOY_KEY_PATH=$homebrew_key_path"
+            echo "GORELEASER_NIX_DEPLOY_KEY_PATH=$nix_key_path"
+          } >> "$GITHUB_ENV"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -63,4 +92,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GORELEASER_DEPLOY_KEY: ${{ secrets.GORELEASER_DEPLOY_KEY }}

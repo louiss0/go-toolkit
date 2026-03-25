@@ -66,7 +66,7 @@ winget:
       branch: master
       git:
         url: "git@github.com:Sheltons-CLI-Projects/winget-pkgs.git"
-        private_key: "{{ .Env.GORELEASER_DEPLOY_KEY }}"
+        private_key: "{{ .Env.GORELEASER_WINGET_DEPLOY_KEY_PATH }}"
 
 homebrew_casks:
   - name: go-toolkit
@@ -81,7 +81,7 @@ homebrew_casks:
       branch: main
       git:
         url: "git@github.com:Sheltons-CLI-Projects/homebrew-the-code-fixer-23.git"
-        private_key: "{{ .Env.GORELEASER_DEPLOY_KEY }}"
+        private_key: "{{ .Env.GORELEASER_HOMEBREW_DEPLOY_KEY_PATH }}"
 
 nix:
   - name: go-toolkit
@@ -96,4 +96,4 @@ nix:
       branch: main
       git:
         url: "git@github.com:Sheltons-CLI-Projects/the-code-fixer-23-nur.git"
-        private_key: "{{ .Env.GORELEASER_DEPLOY_KEY }}"
+        private_key: "{{ .Env.GORELEASER_NIX_DEPLOY_KEY_PATH }}"
