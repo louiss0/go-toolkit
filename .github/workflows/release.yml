@@ -57,16 +57,16 @@ jobs:
 
       - name: Write GoReleaser deploy keys
         env:
-          GORELEASER_WINGET_DEPLOY_KEY: ${{ secrets.GORELEASER_WINGET_DEPLOY_KEY }}
-          GORELEASER_HOMEBREW_DEPLOY_KEY: ${{ secrets.GORELEASER_HOMEBREW_DEPLOY_KEY }}
-          GORELEASER_NIX_DEPLOY_KEY: ${{ secrets.GORELEASER_NIX_DEPLOY_KEY }}
+          GORELEASER_WINGET_DEPLOY_KEY_B64: ${{ secrets.GORELEASER_WINGET_DEPLOY_KEY_B64 }}
+          GORELEASER_HOMEBREW_DEPLOY_KEY_B64: ${{ secrets.GORELEASER_HOMEBREW_DEPLOY_KEY_B64 }}
+          GORELEASER_NIX_DEPLOY_KEY_B64: ${{ secrets.GORELEASER_NIX_DEPLOY_KEY_B64 }}
         run: |
           write_key() {
             key_path="$1"
             key_value="$2"
 
             umask 077
-            printf '%s\n' "$key_value" | tr -d '\r' > "$key_path"
+            printf '%s' "$key_value" | base64 --decode > "$key_path"
             chmod 600 "$key_path"
           }
 
@@ -74,9 +74,9 @@ jobs:
           homebrew_key_path="$RUNNER_TEMP/goreleaser-homebrew"
           nix_key_path="$RUNNER_TEMP/goreleaser-nix"
 
-          write_key "$winget_key_path" "$GORELEASER_WINGET_DEPLOY_KEY"
-          write_key "$homebrew_key_path" "$GORELEASER_HOMEBREW_DEPLOY_KEY"
-          write_key "$nix_key_path" "$GORELEASER_NIX_DEPLOY_KEY"
+          write_key "$winget_key_path" "$GORELEASER_WINGET_DEPLOY_KEY_B64"
+          write_key "$homebrew_key_path" "$GORELEASER_HOMEBREW_DEPLOY_KEY_B64"
+          write_key "$nix_key_path" "$GORELEASER_NIX_DEPLOY_KEY_B64"
 
           {
             echo "GORELEASER_WINGET_DEPLOY_KEY_PATH=$winget_key_path"
