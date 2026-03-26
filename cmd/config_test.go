@@ -10,6 +10,7 @@ import (
 	"github.com/louiss0/go-toolkit/internal/testhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 var Config = Describe("config command", func() {
@@ -92,6 +93,28 @@ var Config = Describe("config command", func() {
 		assert.Equal(configPath, payload["path"])
 		assert.Equal("gitlab.com", payload["site"])
 		assert.Equal("lou", payload["user"])
+	})
+
+	It("opens the config file in the requested editor", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		runner.On("Run", mock.Anything, "code", []string{"--wait", configPath}).Return(nil).Once()
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err := testhelpers.ExecuteCmd(rootCmd, "config", "edit", "--editor", "code --wait")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+
+		_, err = os.Stat(configPath)
+		assert.NoError(err)
 	})
 
 	It("removes the config file", func() {

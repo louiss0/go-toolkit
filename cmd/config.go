@@ -4,26 +4,31 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
+	"github.com/carapace-sh/carapace-shlex"
 	"github.com/charmbracelet/huh"
 	"github.com/louiss0/go-toolkit/custom_errors"
 	"github.com/louiss0/go-toolkit/custom_flags"
 	"github.com/louiss0/go-toolkit/internal/cmdutil"
 	"github.com/louiss0/go-toolkit/internal/modindex/config"
 	"github.com/louiss0/go-toolkit/internal/prompt"
+	"github.com/louiss0/go-toolkit/internal/runner"
 	"github.com/louiss0/go-toolkit/validation"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
-func NewConfigCmd(configPath *string, promptRunner prompt.Runner) *cobra.Command {
+func NewConfigCmd(commandRunner runner.Runner, configPath *string, promptRunner prompt.Runner) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage go-toolkit configuration",
 	}
 
 	cmd.AddCommand(newConfigInitCmd(configPath, promptRunner))
+	cmd.AddCommand(newConfigEditCmd(commandRunner, configPath))
 	cmd.AddCommand(newConfigShowCmd(configPath))
 	cmd.AddCommand(newConfigSetUserCmd(configPath))
 	cmd.AddCommand(newConfigSetSiteCmd(configPath))
@@ -35,6 +40,92 @@ func NewConfigCmd(configPath *string, promptRunner prompt.Runner) *cobra.Command
 	cmd.AddCommand(newConfigRemoveCmd(configPath))
 
 	return cmd
+}
+
+func newConfigEditCmd(commandRunner runner.Runner, configPath *string) *cobra.Command {
+	editorFlag := custom_flags.NewEmptyStringFlag("editor")
+
+	cmd := &cobra.Command{
+		Use:   "edit",
+		Short: "Open the config file in your editor",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			targetPath := strings.TrimSpace(*configPath)
+			if targetPath == "" {
+				return custom_errors.CreateInvalidInputErrorWithMessage("config path is required")
+			}
+			if err := ensureConfigFileExists(targetPath); err != nil {
+				return err
+			}
+
+			editorParts, err := resolveEditorCommand(editorFlag.String())
+			if err != nil {
+				return err
+			}
+
+			editorName := editorParts[0]
+			editorArgs := append(editorParts[1:], targetPath)
+			return commandRunner.Run(cmd, editorName, editorArgs...)
+		},
+	}
+
+	cmd.Flags().Var(&editorFlag, "editor", "override the editor command")
+
+	return cmd
+}
+
+func ensureConfigFileExists(path string) error {
+	configDir := filepath.Dir(path)
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return os.WriteFile(path, []byte{}, 0o644)
+	} else if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func resolveEditorCommand(override string) ([]string, error) {
+	editorValue := strings.TrimSpace(override)
+	if editorValue == "" {
+		for _, candidate := range []string{
+			os.Getenv("GO_TOOLKIT_EDITOR"),
+			os.Getenv("GIT_EDITOR"),
+			os.Getenv("VISUAL"),
+			os.Getenv("EDITOR"),
+		} {
+			if strings.TrimSpace(candidate) != "" {
+				editorValue = candidate
+				break
+			}
+		}
+	}
+	if editorValue == "" {
+		if runtime.GOOS == "windows" {
+			return []string{"notepad"}, nil
+		}
+		return nil, custom_errors.CreateInvalidInputErrorWithMessage(
+			"missing editor; set --editor, GO_TOOLKIT_EDITOR, GIT_EDITOR, VISUAL, or EDITOR",
+		)
+	}
+
+	tokens, err := shlex.Split(editorValue)
+	if err != nil {
+		return nil, custom_errors.CreateInvalidInputErrorWithMessage("editor command is invalid")
+	}
+
+	parts := lo.Filter(tokens.Strings(), func(part string, _ int) bool {
+		return strings.TrimSpace(part) != ""
+	})
+	if len(parts) == 0 {
+		return nil, custom_errors.CreateInvalidInputErrorWithMessage("editor command is invalid")
+	}
+
+	return parts, nil
 }
 
 func newConfigSetUserCmd(configPath *string) *cobra.Command {

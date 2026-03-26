@@ -86,6 +86,12 @@ It shortens common tasks like init, remove, and scaffold.`,
 			DisableDefaultCmd: true,
 		},
 	}
+	cmd.AddGroup(
+		&cobra.Group{ID: "setup", Title: "Setup Commands"},
+		&cobra.Group{ID: "local-packages", Title: "Local Package Commands"},
+		&cobra.Group{ID: "global-packages", Title: "Global Package Commands"},
+		&cobra.Group{ID: "project", Title: "Project Commands"},
+	)
 
 	cmd.PersistentFlags().StringVar(&configPath, "config", configPath, "config file path")
 
@@ -94,12 +100,34 @@ It shortens common tasks like init, remove, and scaffold.`,
 	removeCmd := NewRemoveCmd(commandRunner, &configPath)
 	scaffoldCmd := NewScaffoldCmd(commandRunner, &configPath)
 	testCmd := NewTestCmd(commandRunner)
-	configCmd := NewConfigCmd(&configPath, promptRunner)
+	configCmd := NewConfigCmd(commandRunner, &configPath, promptRunner)
 	searchCmd := NewSearchCmd()
 	installCmd := NewInstallCmd(commandRunner, promptRunner, &configPath)
+	uninstallCmd := NewUninstallCmd(commandRunner, promptRunner, &configPath)
 	installGlobalsCmd := NewInstallGlobalsCmd(commandRunner, &configPath)
+	initCmd.GroupID = "setup"
+	configCmd.GroupID = "setup"
+	addCmd.GroupID = "local-packages"
+	removeCmd.GroupID = "local-packages"
+	installCmd.GroupID = "global-packages"
+	uninstallCmd.GroupID = "global-packages"
+	installGlobalsCmd.GroupID = "global-packages"
+	scaffoldCmd.GroupID = "project"
+	testCmd.GroupID = "project"
+	searchCmd.GroupID = "project"
 
-	cmd.AddCommand(initCmd, addCmd, removeCmd, scaffoldCmd, testCmd, configCmd, searchCmd, installCmd, installGlobalsCmd)
+	cmd.AddCommand(
+		initCmd,
+		addCmd,
+		removeCmd,
+		scaffoldCmd,
+		testCmd,
+		configCmd,
+		searchCmd,
+		installCmd,
+		uninstallCmd,
+		installGlobalsCmd,
+	)
 
 	configureCompletions(cmd, scaffoldCmd, configCmd)
 
