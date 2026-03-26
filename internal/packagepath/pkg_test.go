@@ -71,6 +71,14 @@ var _ = Describe("Packagepath", func() {
 				nil,
 			),
 			Entry(
+				"adds the site when given user, package, and major version",
+				"onsi/ginkgo/v2",
+				"github.com",
+				"lou",
+				"github.com/onsi/ginkgo/v2",
+				nil,
+			),
+			Entry(
 				"uses the registered user when only a package is provided",
 				"tool",
 				"github.com",

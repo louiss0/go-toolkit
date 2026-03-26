@@ -379,8 +379,8 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 
 	packageInput, err := runner.Input(cmd, prompt.Input{
 		Title:       "Packages to install",
-		Description: "Optional; use space-separated username/package entries, or leave blank to skip.",
-		Placeholder: "samber/lo stretchr/testify",
+		Description: "Optional; use space-separated username/package or username/package/vN entries, or leave blank to skip.",
+		Placeholder: "samber/lo onsi/ginkgo/v2",
 		Validate: func(value string) error {
 			_, err := validation.ParseShortPackageList(value, "packages to install")
 			return err

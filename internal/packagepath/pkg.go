@@ -35,6 +35,12 @@ func ResolveModulePath(input string, site string, user string) (string, error) {
 		if strings.Contains(parts[0], ".") {
 			return strings.Join(parts, "/"), nil
 		}
+		if len(parts) == 3 && validation.IsShortPackagePath(trimmed) {
+			if !validation.IsValidSite(site) {
+				return "", custom_errors.CreateInvalidInputErrorWithMessage("site must be in the form sitename.domain")
+			}
+			return joinPath(site, parts[0], parts[1], parts[2]), nil
+		}
 		if len(parts) == 3 {
 			return strings.Join(parts, "/"), nil
 		}

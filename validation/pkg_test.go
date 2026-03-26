@@ -67,6 +67,13 @@ var _ = Describe("ParseShortPackageList", func() {
 		assert.Equal([]string{"samber/lo", "stretchr/testify"}, packages)
 	})
 
+	It("parses versioned short package paths", func() {
+		packages, err := validation.ParseShortPackageList("onsi/ginkgo/v2", "packages to install")
+
+		assert.NoError(err)
+		assert.Equal([]string{"onsi/ginkgo/v2"}, packages)
+	})
+
 	It("rejects commas and full module paths", func() {
 		_, err := validation.ParseShortPackageList(
 			"samber/lo, github.com/spf13/cobra",
@@ -74,7 +81,7 @@ var _ = Describe("ParseShortPackageList", func() {
 		)
 
 		assert.Error(err)
-		assert.Contains(err.Error(), "packages to install must use space-separated username/package entries")
+		assert.Contains(err.Error(), "packages to install must use space-separated username/package or username/package/vN entries")
 	})
 })
 
@@ -83,7 +90,7 @@ var _ = Describe("RequiredShortPackageList", func() {
 		_, err := validation.RequiredShortPackageList("   ", "packages to add")
 
 		assert.Error(err)
-		assert.Contains(err.Error(), "packages to add must use space-separated username/package entries")
+		assert.Contains(err.Error(), "packages to add must use space-separated username/package or username/package/vN entries")
 	})
 })
 
@@ -95,5 +102,15 @@ var _ = Describe("IsFullModulePath", func() {
 
 	It("rejects short package paths", func() {
 		assert.False(validation.IsFullModulePath("samber/lo"))
+	})
+})
+
+var _ = Describe("IsShortPackagePath", func() {
+	It("accepts owner, package, and major version segments", func() {
+		assert.True(validation.IsShortPackagePath("onsi/ginkgo/v2"))
+	})
+
+	It("rejects a third segment that is not a major version", func() {
+		assert.False(validation.IsShortPackagePath("onsi/ginkgo/release"))
 	})
 })

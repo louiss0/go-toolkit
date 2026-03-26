@@ -62,4 +62,26 @@ var Uninstall = Describe("uninstall command", func() {
 		runner.AssertNotCalled(GinkgoT(), "Run", mock.Anything, mock.Anything, mock.Anything)
 		assert.Contains(output, "go clean -i github.com/onsi/ginkgo/v2")
 	})
+
+	It("uninstalls a short package path with a major version suffix", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\nglobal_packages = [\"github.com/onsi/ginkgo/v2\"]\n"), 0o644)
+		assert.NoError(err)
+
+		runner.On("Run", mock.Anything, "go", []string{"clean", "-i", "github.com/onsi/ginkgo/v2"}).Return(nil).Once()
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "uninstall", "onsi/ginkgo/v2")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+	})
 })

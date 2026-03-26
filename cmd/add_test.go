@@ -67,6 +67,28 @@ var Add = Describe("add command", func() {
 		runner.AssertExpectations(GinkgoT())
 	})
 
+	It("adds a short package path with a major version suffix", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := writeDefaultConfig(configPath)
+		assert.NoError(err)
+
+		runner.On("Run", mock.Anything, "go", []string{"get", "github.com/onsi/ginkgo/v2"}).Return(nil).Once()
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "add", "onsi/ginkgo/v2")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+	})
+
 	It("adds a module with an @version suffix", func() {
 		runner := &testhelpers.RunnerMock{}
 		tempDir := GinkgoT().TempDir()
@@ -173,7 +195,7 @@ var Add = Describe("add command", func() {
 		_, err = testhelpers.ExecuteCmd(rootCmd, "add")
 
 		assert.Error(err)
-		assert.Contains(err.Error(), "packages to add must use space-separated username/package entries")
+		assert.Contains(err.Error(), "packages to add must use space-separated username/package or username/package/vN entries")
 	})
 
 	It("adds packages from presets", func() {

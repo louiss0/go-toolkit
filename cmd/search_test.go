@@ -50,4 +50,12 @@ var Search = Describe("search command", func() {
 
 		assert.NoError(err)
 	})
+
+	It("accepts versioned short package queries", func() {
+		searchCmd := cmd.NewSearchCmd()
+
+		err := searchCmd.Args(searchCmd, []string{"onsi/ginkgo/v2"})
+
+		assert.NoError(err)
+	})
 })

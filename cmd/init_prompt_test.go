@@ -165,6 +165,6 @@ var InitPrompt = Describe("Init prompt", func() {
 		_, err := promptInitInputs(&cobra.Command{}, mock)
 
 		assert.Error(err)
-		assert.Contains(err.Error(), "packages to install must use space-separated username/package entries")
+		assert.Contains(err.Error(), "packages to install must use space-separated username/package or username/package/vN entries")
 	})
 })

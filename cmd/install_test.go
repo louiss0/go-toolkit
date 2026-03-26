@@ -70,6 +70,32 @@ var Install = Describe("install command", func() {
 		assert.Contains(values.GlobalPackages, "github.com/carapace-sh/carapace")
 	})
 
+	It("installs a short package path with a major version suffix globally", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+
+		err := writeDefaultConfig(configPath)
+		assert.NoError(err)
+
+		runner.On("Run", mock.Anything, "go", []string{"install", "github.com/onsi/ginkgo/v2@latest"}).Return(nil).Once()
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "install", "onsi/ginkgo/v2")
+
+		assert.NoError(err)
+		runner.AssertExpectations(GinkgoT())
+
+		values, err := config.Load(configPath)
+		assert.NoError(err)
+		assert.Contains(values.GlobalPackages, "github.com/onsi/ginkgo/v2")
+	})
+
 	It("prints the install command on dry run", func() {
 		runner := &testhelpers.RunnerMock{}
 		tempDir := GinkgoT().TempDir()

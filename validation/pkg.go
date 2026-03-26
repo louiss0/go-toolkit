@@ -14,7 +14,10 @@ var (
 	requiredStringSchema = gozod.String().Regex(regexp.MustCompile(`.+`))
 	siteSchema           = gozod.String().Regex(regexp.MustCompile(`^[^\s.][^\s]*\.[^\s]*[^\s.]$`))
 	booleanStringSchema  = gozod.String().Regex(regexp.MustCompile(`(?i)^(1|0|t|f|true|false)$`))
+	versionSegmentSchema = regexp.MustCompile(`^v[0-9].*$`)
 )
+
+const shortPackageListFormatMessage = "username/package or username/package/vN"
 
 func RequiredString(value string, field string) (string, error) {
 	trimmed := strings.TrimSpace(value)
@@ -100,7 +103,7 @@ func ParseShortPackageList(value string, field string) ([]string, error) {
 		return !IsShortPackagePath(packageName)
 	}) {
 		return nil, custom_errors.CreateInvalidInputErrorWithMessage(
-			field + " must use space-separated username/package entries",
+			field + " must use space-separated " + shortPackageListFormatMessage + " entries",
 		)
 	}
 
@@ -115,7 +118,7 @@ func RequiredShortPackageList(value string, field string) ([]string, error) {
 
 	if len(packages) == 0 {
 		return nil, custom_errors.CreateInvalidInputErrorWithMessage(
-			field + " must use space-separated username/package entries",
+			field + " must use space-separated " + shortPackageListFormatMessage + " entries",
 		)
 	}
 
@@ -124,11 +127,14 @@ func RequiredShortPackageList(value string, field string) ([]string, error) {
 
 func IsShortPackagePath(value string) bool {
 	parts := strings.Split(strings.TrimSpace(value), "/")
-	if len(parts) != 2 {
+	if len(parts) != 2 && len(parts) != 3 {
 		return false
 	}
 
 	if strings.Contains(parts[0], ".") {
+		return false
+	}
+	if len(parts) == 3 && !versionSegmentSchema.MatchString(parts[2]) {
 		return false
 	}
 

@@ -136,8 +136,8 @@ func NewInstallCmd(commandRunner runner.Runner, promptRunner prompt.Runner, conf
 func promptInstallPackages(cmd *cobra.Command, runner prompt.Runner) ([]string, error) {
 	packageInput, err := runner.Input(cmd, prompt.Input{
 		Title:       "Packages to install globally",
-		Description: "Use space-separated username/package entries; presets can be used with --preset.",
-		Placeholder: "samber/lo stretchr/testify",
+		Description: "Use space-separated username/package or username/package/vN entries; presets can be used with --preset.",
+		Placeholder: "samber/lo onsi/ginkgo/v2",
 		Validate: func(value string) error {
 			_, err := validation.RequiredShortPackageList(value, "packages to install")
 			return err
