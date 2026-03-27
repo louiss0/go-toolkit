@@ -1,0 +1,21 @@
+package main
+
+import (
+	"log"
+	"net/http"
+)
+
+func main() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write([]byte("ok"))
+	})
+
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	log.Fatal(server.ListenAndServe())
+}

@@ -21,6 +21,7 @@ import (
 func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configPath *string) *cobra.Command {
 	siteFlag := custom_flags.NewEmptyStringFlag("site")
 	userFlag := custom_flags.NewEmptyStringFlag("user")
+	templateFlag := custom_flags.NewUnionFlag(project.TemplateValues(), "template")
 	var allowFull bool
 	var packageFlags []string
 	var presetFlags []string
@@ -126,13 +127,12 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 				}
 			}
 
-			writeMain := promptValues.ShouldWriteMain()
+			template := resolveInitTemplate(templateFlag.String(), promptValues)
 			shouldInitGit := promptValues.ShouldInitGit()
 
-			cmdutil.LogInfoIfProduction("init: creating project layout")
+			cmdutil.LogInfoIfProduction("init: creating project layout from %s template", template)
 			if err := project.EnsureLayout(".", project.Options{
-				WriteMain:     writeMain,
-				WriteInternal: true,
+				Template: template,
 			}); err != nil {
 				return err
 			}
@@ -161,36 +161,41 @@ func NewInitCmd(commandRunner runner.Runner, promptRunner prompt.Runner, configP
 	cmd.Flags().Var(&userFlag, "user", "override the configured user")
 	cmd.Flags().Var(&siteFlag, "site", "override the configured site")
 	cmd.Flags().BoolVar(&allowFull, "full", false, "allow a custom module site")
+	cmd.Flags().Var(&templateFlag, "template", "project template to apply")
 	cmd.Flags().StringSliceVar(&packageFlags, "package", nil, "module paths to install after init")
 	cmd.Flags().StringSliceVar(&presetFlags, "preset", nil, "package preset names to install after init")
 	cmdutil.RegisterSiteCompletion(cmd, "site")
+	_ = cmd.RegisterFlagCompletionFunc("template", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return project.TemplateValues(), cobra.ShellCompDirectiveNoFileComp
+	})
 
 	return cmd
 }
 
 const (
-	projectTypeApp           = "app"
-	projectTypeLibrary       = "library"
-	projectTypeSkip          = "skip"
-	projectTypeSkipRemaining = "skip-remaining"
-	providerCustom           = "custom"
-	providerSkip             = "skip"
-	providerSkipRemaining    = "skip-remaining"
-	testChoiceYes            = "yes"
-	testChoiceNo             = "no"
-	testChoiceSkip           = "skip"
-	testChoiceSkipRemaining  = "skip-remaining"
-	gitChoiceYes             = "yes"
-	gitChoiceNo              = "no"
-	gitChoiceSkip            = "skip"
-	gitChoiceSkipRemaining   = "skip-remaining"
+	templateTypeAPI           = project.TemplateAPI
+	templateTypeCLI           = project.TemplateCLI
+	templateTypeLib           = project.TemplateLib
+	templateTypeSkip          = "skip"
+	templateTypeSkipRemaining = "skip-remaining"
+	providerCustom            = "custom"
+	providerSkip              = "skip"
+	providerSkipRemaining     = "skip-remaining"
+	testChoiceYes             = "yes"
+	testChoiceNo              = "no"
+	testChoiceSkip            = "skip"
+	testChoiceSkipRemaining   = "skip-remaining"
+	gitChoiceYes              = "yes"
+	gitChoiceNo               = "no"
+	gitChoiceSkip             = "skip"
+	gitChoiceSkipRemaining    = "skip-remaining"
 )
 
 type initPrompt struct {
 	ModuleName       string
 	UserName         string
 	ProviderSite     string
-	ProjectType      string
+	TemplateType     string
 	TestDrivenChoice string
 	GitChoice        string
 	Packages         []string
@@ -203,18 +208,6 @@ func (p initPrompt) ShouldPersistTestChoice() bool {
 	}
 
 	return p.TestDrivenChoice == testChoiceYes || p.TestDrivenChoice == testChoiceNo
-}
-
-func (p initPrompt) ShouldWriteMain() bool {
-	if !p.Used {
-		return true
-	}
-
-	if p.ProjectType == projectTypeLibrary {
-		return false
-	}
-
-	return true
 }
 
 func (p initPrompt) ShouldInitGit() bool {
@@ -310,12 +303,13 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 	}
 
 	projectType, err := runner.Select(cmd, prompt.Select{
-		Title: "Project type",
+		Title: "Template",
 		Options: []prompt.Option{
-			{Label: "App", Value: projectTypeApp},
-			{Label: "Library", Value: projectTypeLibrary},
-			{Label: "Skip", Value: projectTypeSkip},
-			{Label: "Skip remaining", Value: projectTypeSkipRemaining},
+			{Label: "API", Value: templateTypeAPI},
+			{Label: "CLI", Value: templateTypeCLI},
+			{Label: "Lib", Value: templateTypeLib},
+			{Label: "Skip", Value: templateTypeSkip},
+			{Label: "Skip remaining", Value: templateTypeSkipRemaining},
 		},
 	})
 	if err != nil {
@@ -325,11 +319,13 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 		return initPrompt{}, err
 	}
 
-	if projectType == projectTypeSkipRemaining {
+	if projectType == templateTypeSkipRemaining {
 		return promptValues, nil
 	}
 
-	promptValues.ProjectType = projectType
+	if projectType != templateTypeSkip {
+		promptValues.TemplateType = projectType
+	}
 
 	testChoice, err := runner.Select(cmd, prompt.Select{
 		Title: "Test driven",
@@ -401,9 +397,9 @@ func promptInitInputs(cmd *cobra.Command, runner prompt.Runner) (initPrompt, err
 }
 
 func writeInitSummary(cmd *cobra.Command, modulePath string, site string, user string, prompt initPrompt) error {
-	projectType := prompt.ProjectType
+	projectType := prompt.TemplateType
 	if projectType == "" {
-		projectType = projectTypeApp
+		projectType = templateTypeAPI
 	}
 
 	testDriven := prompt.TestDrivenChoice
@@ -427,4 +423,16 @@ func writeInitSummary(cmd *cobra.Command, modulePath string, site string, user s
 	}
 
 	return cmdutil.WritePrettyJSON(cmd.OutOrStdout(), summary)
+}
+
+func resolveInitTemplate(flagValue string, promptValues initPrompt) string {
+	if flagValue != "" {
+		return flagValue
+	}
+
+	if promptValues.TemplateType != "" {
+		return promptValues.TemplateType
+	}
+
+	return templateTypeAPI
 }

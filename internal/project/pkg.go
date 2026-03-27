@@ -1,21 +1,27 @@
 package project
 
 import (
-	"errors"
+	"embed"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/louiss0/go-toolkit/validation"
 )
 
-const mainTemplate = `package main
+//go:embed assets/templates
+var templateFiles embed.FS
 
-func main() {}
-`
+const (
+	TemplateAPI = "api"
+	TemplateCLI = "cli"
+	TemplateLib = "lib"
+)
 
 type Options struct {
-	WriteMain     bool
-	WriteInternal bool
+	Template string
 }
 
 func EnsureLayout(root string, options Options) error {
@@ -23,44 +29,61 @@ func EnsureLayout(root string, options Options) error {
 		return err
 	}
 
-	if options.WriteInternal {
-		if err := ensureInternalDir(root); err != nil {
-			return err
-		}
-	}
-
-	if options.WriteMain {
-		if err := ensureMainFile(root); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func ensureInternalDir(root string) error {
-	return os.MkdirAll(filepath.Join(root, "internal"), 0o755)
-}
-
-func ensureMainFile(root string) (err error) {
-	path := filepath.Join(root, "main.go")
-	if _, err := os.Stat(path); err == nil {
-		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	template, err := resolveTemplate(options.Template)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		closeErr := file.Close()
-		if err == nil {
-			err = closeErr
-		}
-	}()
 
-	_, err = file.WriteString(mainTemplate)
-	return err
+	templateTree, err := fs.Sub(templateFiles, templatePath(template))
+	if err != nil {
+		return err
+	}
+
+	return writeTemplate(root, templateTree)
+}
+
+func TemplateValues() []string {
+	return []string{TemplateAPI, TemplateCLI, TemplateLib}
+}
+
+func resolveTemplate(template string) (string, error) {
+	if template == "" {
+		return TemplateAPI, nil
+	}
+
+	for _, allowedTemplate := range TemplateValues() {
+		if template == allowedTemplate {
+			return template, nil
+		}
+	}
+
+	return "", fmt.Errorf("template must be one of: %v", TemplateValues())
+}
+
+func templatePath(template string) string {
+	return fmt.Sprintf("assets/templates/%s", template)
+}
+
+func writeTemplate(root string, templateTree fs.FS) error {
+	return fs.WalkDir(templateTree, ".", func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		targetPath := filepath.Join(root, materializePath(path))
+		if entry.IsDir() {
+			return os.MkdirAll(targetPath, 0o755)
+		}
+
+		content, err := fs.ReadFile(templateTree, path)
+		if err != nil {
+			return err
+		}
+
+		return os.WriteFile(targetPath, content, 0o644)
+	})
+}
+
+func materializePath(path string) string {
+	return strings.TrimSuffix(path, ".tmpl")
 }

@@ -69,7 +69,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: ""},
 			promptStep{kind: promptStepSelect, value: providerSkip},
-			promptStep{kind: promptStepSelect, value: projectTypeLibrary},
+			promptStep{kind: promptStepSelect, value: templateTypeLib},
 			promptStep{kind: promptStepSelect, value: testChoiceNo},
 			promptStep{kind: promptStepSelect, value: gitChoiceNo},
 			promptStep{kind: promptStepInput, value: "samber/lo"},
@@ -78,7 +78,7 @@ var InitPrompt = Describe("Init prompt", func() {
 		values, err := promptInitInputs(&cobra.Command{}, mock)
 
 		assert.NoError(err)
-		assert.Equal(projectTypeLibrary, values.ProjectType)
+		assert.Equal(templateTypeLib, values.TemplateType)
 		assert.Equal(testChoiceNo, values.TestDrivenChoice)
 		assert.Equal(gitChoiceNo, values.GitChoice)
 		assert.Equal([]string{"samber/lo"}, values.Packages)
@@ -89,7 +89,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: "lou"},
 			promptStep{kind: promptStepSelect, value: "github.com"},
-			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: templateTypeAPI},
 			promptStep{kind: promptStepSelect, value: testChoiceSkipRemaining},
 		)
 
@@ -106,7 +106,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: "lou"},
 			promptStep{kind: promptStepSelect, value: "github.com"},
-			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: templateTypeAPI},
 			promptStep{kind: promptStepSelect, value: testChoiceYes},
 			promptStep{kind: promptStepSelect, value: gitChoiceSkipRemaining},
 		)
@@ -122,7 +122,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: "lou"},
 			promptStep{kind: promptStepSelect, value: "github.com"},
-			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: templateTypeAPI},
 			promptStep{kind: promptStepSelect, value: testChoiceYes},
 			promptStep{kind: promptStepSelect, value: gitChoiceYes},
 			promptStep{kind: promptStepInput, err: huh.ErrUserAborted},
@@ -139,7 +139,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: "lou"},
 			promptStep{kind: promptStepSelect, value: "github.com"},
-			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: templateTypeAPI},
 			promptStep{kind: promptStepSelect, value: testChoiceYes},
 			promptStep{kind: promptStepSelect, value: gitChoiceYes},
 			promptStep{kind: promptStepInput, value: "   "},
@@ -156,7 +156,7 @@ var InitPrompt = Describe("Init prompt", func() {
 			promptStep{kind: promptStepInput, value: "toolkit"},
 			promptStep{kind: promptStepInput, value: "lou"},
 			promptStep{kind: promptStepSelect, value: "github.com"},
-			promptStep{kind: promptStepSelect, value: projectTypeApp},
+			promptStep{kind: promptStepSelect, value: templateTypeAPI},
 			promptStep{kind: promptStepSelect, value: testChoiceYes},
 			promptStep{kind: promptStepSelect, value: gitChoiceYes},
 			promptStep{kind: promptStepInput, value: "github.com/spf13/cobra"},

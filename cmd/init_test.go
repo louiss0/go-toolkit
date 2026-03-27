@@ -48,8 +48,10 @@ var Init = Describe("init command", func() {
 
 		_, err = os.Stat(filepath.Join(tempDir, "internal"))
 		assert.NoError(err)
+		_, err = os.Stat(filepath.Join(tempDir, "internal", "services", "service.go"))
+		assert.NoError(err)
 
-		content, err := os.ReadFile(filepath.Join(tempDir, "main.go"))
+		content, err := os.ReadFile(filepath.Join(tempDir, "cmd", "main.go"))
 		assert.NoError(err)
 		assert.Contains(string(content), "package main")
 	})
@@ -71,7 +73,7 @@ var Init = Describe("init command", func() {
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "toolkit"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "lou"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "github.com"},
-			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "library"},
+			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "lib"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "yes"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepSelect, Value: "no"},
 			testhelpers.PromptStep{Kind: testhelpers.PromptStepInput, Value: "samber/lo"},
@@ -97,15 +99,20 @@ var Init = Describe("init command", func() {
 		assert.Equal("github.com", values.Site)
 		assert.True(values.Scaffold.WriteTests)
 
-		_, err = os.Stat(filepath.Join(tempDir, "main.go"))
+		_, err = os.Stat(filepath.Join(tempDir, "cmd", "main.go"))
 		assert.Error(err)
 		_, err = os.Stat(filepath.Join(tempDir, "internal"))
+		assert.NoError(err)
+		_, err = os.Stat(filepath.Join(tempDir, "internal", "services", "service.go"))
+		assert.Error(err)
+		_, err = os.Stat(filepath.Join(tempDir, "external"))
 		assert.NoError(err)
 
 		var summary map[string]any
 		err = json.Unmarshal([]byte(output), &summary)
 		assert.NoError(err)
 		assert.Equal("github.com/lou/toolkit", summary["module_path"])
+		assert.Equal("lib", summary["project_type"])
 	})
 
 	It("installs packages from flags and presets", func() {
@@ -142,5 +149,44 @@ var Init = Describe("init command", func() {
 		err = json.Unmarshal([]byte(output), &summary)
 		assert.NoError(err)
 		assert.Equal([]any{"github.com/onsi/ginkgo/v2", "github.com/spf13/cobra", "github.com/spf13/viper"}, summary["packages"])
+	})
+
+	It("applies the cli template from the flag", func() {
+		runner := &testhelpers.RunnerMock{}
+		tempDir := GinkgoT().TempDir()
+		configPath := filepath.Join(tempDir, "config.toml")
+		workingDir, err := os.Getwd()
+		assert.NoError(err)
+
+		err = os.WriteFile(configPath, []byte("user = \"lou\"\nsite = \"github.com\"\n"), 0o644)
+		assert.NoError(err)
+
+		err = os.Chdir(tempDir)
+		assert.NoError(err)
+		DeferCleanup(func() {
+			_ = os.Chdir(workingDir)
+		})
+
+		rootCmd := cmd.NewRootCmdWithOptions(cmd.RootOptions{
+			Runner:       runner,
+			PromptRunner: testhelpers.NewPromptRunnerMock(),
+			ConfigPath:   configPath,
+		})
+
+		runner.On("Run", mock.Anything, "go", []string{"mod", "init", "github.com/lou/toolkit"}).Return(nil).Once()
+		runner.On("Run", mock.Anything, "git", []string{"init"}).Return(nil).Once()
+
+		_, err = testhelpers.ExecuteCmd(rootCmd, "init", "toolkit", "--template", "cli")
+
+		assert.NoError(err)
+
+		_, err = os.Stat(filepath.Join(tempDir, "cmd", "root.go"))
+		assert.NoError(err)
+		_, err = os.Stat(filepath.Join(tempDir, "internal"))
+		assert.NoError(err)
+		_, err = os.Stat(filepath.Join(tempDir, "internal", "services", "service.go"))
+		assert.Error(err)
+		_, err = os.Stat(filepath.Join(tempDir, "external"))
+		assert.Error(err)
 	})
 })
